@@ -1,5 +1,6 @@
 
 from __future__ import division  # Get proper divison
+from __future__ import absolute_import
 
 import math
 import random

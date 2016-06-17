@@ -1,11 +1,12 @@
 
 from __future__ import division  # Get proper divison
+from __future__ import absolute_import
 
 import math
 import random
 import numpy as np
 
-from parameters import ModelParameters
+from flooddrake.parameters import ModelParameters
 
 from firedrake import *
 
@@ -114,9 +115,8 @@ def SlopeModification(w):
     }
     """
 
-    new_v_u_func = Function(vu)
-    new_v_v_func = Function(vv)
-    new_v_func = Function(v)
+    nf = Function(V)
+    new_v_func, new_v_u_func, new_v_v_func = split(nf)
 
     # par loop
     par_loop(
@@ -129,12 +129,5 @@ def SlopeModification(w):
                             mu, READ), "vert_v_cell": (
                                 mv, READ)})
 
-    # project back to w
-    W = Function(V)
-
-    W.dat.data[0][:] += new_v_func.dat.data[:].astype(float)
-    W.dat.data[1][:] += new_v_u_func.dat.data[:].astype(float)
-
-    W.dat.data[2][:] += new_v_v_func.dat.data[:].astype(float)
-
-    return W
+    
+    return nf

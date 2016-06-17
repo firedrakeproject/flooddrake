@@ -1,11 +1,12 @@
 
 from __future__ import division  # Get proper divison
+from __future__ import absolute_import
 
 import math
 import random
 
 import numpy as np
-from parameters import ModelParameters
+from flooddrake.parameters import ModelParameters
 
 from firedrake import *
 
@@ -15,7 +16,7 @@ def SlopeLimiter(w, b, VCG):
 
         :param w: state vector
 
-                :para b: bed :class:`Function`
+        :param b: bed :class:`Function`
 
         :param VCG: Continuous :class:`MixedFunctionSpace`
 
@@ -105,7 +106,7 @@ def SlopeLimiter(w, b, VCG):
                         c, READ), "cell_depth": (
                             h, READ)})
 
-    # modify depth to state vector function
-    W.dat.data[0][:] = (v_func.dat.data[:] - b_.dat.data[:]).astype(float)
+    # limited depth to state vector function
+    W.sub(0).assign(v_func - b_)
 
     return W
