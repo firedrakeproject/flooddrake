@@ -11,12 +11,12 @@ from firedrake import *
 
 from flooddrake import *
 
-""" demo file for simple 1d shallow water equations for dam break"""
+""" demo file for simple 1d shallow water equations with steady rain """
 
 
 # Meshsize
 
-n = 10
+n = 15
 mesh = UnitIntervalMesh(n)
 
 # mixed function space
@@ -33,7 +33,7 @@ VCG = XCG * YCG
 
 # setup free surface depth
 g = interpolate(Expression(
-    ['pow(x[0]-0.8,2)< 0.01 ? 2 : (pow(x[0]-0.8,2) < 0.01 ? -1.0 : 1)', 0]), V)
+    ["0.5", 0]), V)
 
 # setup bed
 
@@ -45,12 +45,11 @@ bed = interpolate(Expression(["x[0]*2", 0]), V)
 w = g.assign(g - bed)
 
 # setup source (is only a depth function)
-source = interpolate(Expression("0"),X)
-
-
+# constant rain
+source = interpolate(Expression("0.05"),X)
 
 # timestep
 
 solution = Timestepper(V, VCG, bed, source, 0.025)
 
-solution.stepper(0, 0.75, w)
+solution.stepper(0, 2, w)

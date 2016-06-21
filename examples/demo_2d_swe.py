@@ -11,7 +11,7 @@ from firedrake import *
 
 from flooddrake import *
 
-""" demo file for simple 2d shallow water equations """
+""" demo file for simple 2d shallow water equations for dam break"""
 
 
 # Meshsize
@@ -46,9 +46,13 @@ bed = interpolate(Expression(["0", 0, 0]), V)
 # setup actual depth
 w = g.assign(g - bed)
 
+# setup source (is only a depth function)
+source = interpolate(Expression("0"),X)
+
+
 
 # timestep
 
-solution = Timestepper(V, VCG, bed, 0.025)
+solution = Timestepper(V, VCG, bed, source, 0.025)
 
 solution.stepper(0, 0.75, w)

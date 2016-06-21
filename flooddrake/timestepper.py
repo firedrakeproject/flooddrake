@@ -20,9 +20,13 @@ from firedrake import *
 
 class Timestepper(object):
 
-    def __init__(self, V, VCG, bed, Courant=0.025):
+    def __init__(self, V, VCG, bed, source, Courant=0.025):
 
         self.b = bed
+        
+        # currently source term only works for constant
+        self.source_term=source
+        
         self.mesh = V.mesh()
         self.VCG = VCG
 
@@ -151,10 +155,10 @@ class Timestepper(object):
 
         # Define source term
         if self.mesh.geometric_dimension() == 1:
-            source = as_vector((0, gravity * h * self.b_.dx(0)))
+            source = as_vector((-self.source_term, gravity * h * self.b_.dx(0)))
         if self.mesh.geometric_dimension() == 2:
             source = as_vector(
-                (0, gravity * h * self.b_.dx(0), gravity * h * self.b_.dx(1)))
+                (-self.source_term, gravity * h * self.b_.dx(0), gravity * h * self.b_.dx(1)))
 
         ####################### SOLVER ######################
 
@@ -238,8 +242,6 @@ class Timestepper(object):
 
         for i in range(Nt):
 
-            A = h
-            
             w_ = self.__solver_variable(w)
 
             w.assign(w_)
@@ -276,13 +278,6 @@ class Timestepper(object):
 
                 # index functions and spaces
                 h, mu, mv = split(w)
-
-            # This is to check conservation of mass - can delete when tests are
-            # in place
-            print '---- conservation of mass '
-            print np.abs(assemble(h * dx) - assemble(A * dx))
-            print '----'
-            #
 
             hout_file.write(hout.project(h + self.b_))
             bout_file.write(bout)

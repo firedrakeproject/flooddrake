@@ -16,7 +16,7 @@ from flooddrake import *
 
 # Meshsize
 
-n = 8
+n = 25
 mesh = UnitSquareMesh(n, n)
 
 
@@ -47,9 +47,13 @@ bed = interpolate(Expression(["(pow(x[0]-0.5,2)+pow(x[1]-0.5,2))*2", 0, 0]), V)
 # setup actual depth
 w = g.assign(g - bed)
 
+# setup source (is only a depth function)
+source = interpolate(Expression("0"),X)
+
+
 
 # timestep
 
-solution = Timestepper(V, VCG, bed, 0.00625)
+solution = Timestepper(V, VCG, bed, source, float(0.00625/4))
 
 solution.stepper(0, 2, w)
