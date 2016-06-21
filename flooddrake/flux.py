@@ -1,5 +1,4 @@
-
-from __future__ import division  # Get proper divison
+from __future__ import division
 from __future__ import absolute_import
 
 import math
@@ -8,7 +7,6 @@ import numpy as np
 from flooddrake.parameters import ModelParameters
 
 from firedrake import *
-
 
 class Fluxes(object):
 

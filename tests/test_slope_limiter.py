@@ -1,40 +1,38 @@
+""" test slope limiting """
 
-from __future__ import division  # Get proper divison
+from __future__ import division
 
 import math
 import random
-
 import numpy as np
 
-
 from firedrake import *
-
 from flooddrake import *
-
-# test slope limiter
-
 
 def test_slope_limiter():
 
     n = 15
     mesh = PeriodicUnitSquareMesh(n, n)
 
-    # mixed functionspace
-    X = FunctionSpace(mesh, "DG", 1)
-    Y = FunctionSpace(mesh, "DG", 1)
-    Z = FunctionSpace(mesh, "DG", 1)
-    V = X * Y * Z
+    # mixed function space
+    v_h = FunctionSpace(mesh, "DG", 1)
+    v_mu = FunctionSpace(mesh, "DG", 1)
+    v_mv = FunctionSpace(mesh, "DG", 1)
+    V = v_h*v_mu*v_mv
 
-    # mixed functionspace for slope limiter
-    XCG = FunctionSpace(mesh, "CG", 1)
-    YCG = FunctionSpace(mesh, "CG", 1)
-    ZCG = FunctionSpace(mesh, "CG", 1)
-    VCG = XCG * YCG * ZCG
+    # for slope limiter
+    v_hcg = FunctionSpace(mesh, "CG", 1)
+    v_mucg = FunctionSpace(mesh, "CG", 1)
+    v_mvcg = FunctionSpace(mesh, "CG", 1)
+    VCG = v_hcg*v_mucg*v_mvcg
 
     # setup initial condition
-    w = interpolate(Expression([1, 1, 1]), V)
+    w = Function(V)
+    w.sub(0).assign(1); w.sub(1).assign(1); w.sub(2).assign(1)
 
-    b = interpolate(Expression(['2*x[0]', 0, 0]), V)
+    x = SpatialCoordinate(V.mesh())
+    b = Function(V)
+    b.sub(0).interpolate(2*x[0])
 
     w.assign(w - b)
 
@@ -46,36 +44,36 @@ def test_slope_limiter():
     # check that it's invariant as all cell averages are same.
     assert np.max(np.abs(W.dat.data[0] - w.dat.data[0])) < 1e-10
 
-
-# test slope limiter mean preserving property
-
 def test_slope_limiter_mean_preserving():
 
     n = 15
     mesh = PeriodicUnitSquareMesh(n, n)
 
+    # mixed function space
+    v_h = FunctionSpace(mesh, "DG", 1)
+    v_mu = FunctionSpace(mesh, "DG", 1)
+    v_mv = FunctionSpace(mesh, "DG", 1)
+    V = v_h*v_mu*v_mv
+
+    # for slope limiter
+    v_hcg = FunctionSpace(mesh, "CG", 1)
+    v_mucg = FunctionSpace(mesh, "CG", 1)
+    v_mvcg = FunctionSpace(mesh, "CG", 1)
+    VCG = v_hcg*v_mucg*v_mvcg
+
     # mixed functionspace
-    X = FunctionSpace(mesh, "DG", 1)
-    Y = FunctionSpace(mesh, "DG", 1)
-    Z = FunctionSpace(mesh, "DG", 1)
-    V = X * Y * Z
-
-    # mixed functionspace for slope limiter
-    XCG = FunctionSpace(mesh, "CG", 1)
-    YCG = FunctionSpace(mesh, "CG", 1)
-    ZCG = FunctionSpace(mesh, "CG", 1)
-    VCG = XCG * YCG * ZCG
-
-    # mixed functionspace for average
-    XAV = FunctionSpace(mesh, "DG", 0)
-    YAV = FunctionSpace(mesh, "DG", 0)
-    ZAV = FunctionSpace(mesh, "DG", 0)
-    VAV = XAV * YAV * ZAV
+    v_hav = FunctionSpace(mesh, "DG", 0)
+    v_muav = FunctionSpace(mesh, "DG", 0)
+    v_mvav = FunctionSpace(mesh, "DG", 0)
+    VAV = v_hav*v_muav*v_mvav
 
     # setup initial condition
-    w = interpolate(Expression(['x[0]*x[1]', 0, 0]), V)
+    w = Function(V)
+    x = SpatialCoordinate(V.mesh())
+    w.sub(0).interpolate(x[0]*x[1])
 
-    b = interpolate(Expression(['x[0]', 0, 0]), V)
+    b = Function(V)
+    b.sub(0).interpolate(x[0])
 
     w.assign(w - b)
 

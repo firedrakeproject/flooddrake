@@ -1,58 +1,45 @@
+""" demo file for simple 2d shallow water equations for dam break"""
 
-from __future__ import division  # Get proper divison
+from __future__ import division
 
 import math
 import random
-
 import numpy as np
 
-
 from firedrake import *
-
 from flooddrake import *
 
-""" demo file for simple 2d shallow water equations for dam break"""
-
-
 # Meshsize
-
 n = 10
 mesh = UnitSquareMesh(n, n)
 
 # mixed function space
-X = FunctionSpace(mesh, "DG", 1)
-Y = FunctionSpace(mesh, "DG", 1)
-Z = FunctionSpace(mesh, "DG", 1)
-V = X * Y * Z
-
+v_h = FunctionSpace(mesh, "DG", 1)
+v_mu = FunctionSpace(mesh, "DG", 1)
+v_mv = FunctionSpace(mesh, "DG", 1)
+V = v_h*v_mu*v_mv
 
 # for slope limiter
-XCG = FunctionSpace(mesh, "CG", 1)
-YCG = FunctionSpace(mesh, "CG", 1)
-ZCG = FunctionSpace(mesh, "CG", 1)
-VCG = XCG * YCG * ZCG
-
+v_hcg = FunctionSpace(mesh, "CG", 1)
+v_mucg = FunctionSpace(mesh, "CG", 1)
+v_mvcg = FunctionSpace(mesh, "CG", 1)
+VCG = v_hcg*v_mucg*v_mvcg
 
 # setup free surface depth
-g = interpolate(Expression(
-    ['pow(x[0]-0.5,2) + pow(x[1]-0.5,2)< 0.05 ? 1 : (pow(x[0]-0.5,2) + pow(x[1]-0.5,2)< 0.05 ? -1.0 : 0.8)', 0, 0]), V)
+g = Function(V)
+x = SpatialCoordinate(V.mesh())
+g.sub(0).interpolate(conditional(pow(x[0]-0.5,2) + pow(x[1]-0.5,2)< 0.05, 1.0, 0.8))
 
 # setup bed
-
-# pointless trivial second dimension
-bed = interpolate(Expression(["0", 0, 0]), V)
-
+bed = Function(V)
 
 # setup actual depth
 w = g.assign(g - bed)
 
 # setup source (is only a depth function)
-source = interpolate(Expression("0"),X)
-
-
+source = Function(v_h)
 
 # timestep
-
 solution = Timestepper(V, VCG, bed, source, 0.025)
 
 solution.stepper(0, 0.75, w)

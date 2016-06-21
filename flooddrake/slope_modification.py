@@ -1,5 +1,4 @@
-
-from __future__ import division  # Get proper divison
+from __future__ import division 
 from __future__ import absolute_import
 
 import math
@@ -7,9 +6,7 @@ import random
 import numpy as np
 
 from flooddrake.parameters import ModelParameters
-
 from firedrake import *
-
 
 def SlopeModification(w):
     """ Slope modification for the prevention of non negative flows in some verticies of cells. This is from Ern et al (2011)

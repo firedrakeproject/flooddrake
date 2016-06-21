@@ -1,18 +1,13 @@
+""" test well balancedness """
 
-from __future__ import division  # Get proper divison
+from __future__ import division
 
 import math
 import random
-
 import numpy as np
 
-
 from firedrake import *
-
 from flooddrake import *
-
-# test well balanced condition for none flat bedding
-
 
 def test_well_balanced():
 
@@ -20,28 +15,31 @@ def test_well_balanced():
     mesh = UnitSquareMesh(n, n)
 
     # mixed function space
-    X = FunctionSpace(mesh, "DG", 1)
-    Y = FunctionSpace(mesh, "DG", 1)
-    Z = FunctionSpace(mesh, "DG", 1)
-    V = X * Y * Z
+    v_h = FunctionSpace(mesh, "DG", 1)
+    v_mu = FunctionSpace(mesh, "DG", 1)
+    v_mv = FunctionSpace(mesh, "DG", 1)
+    V = v_h*v_mu*v_mv
 
     # for slope limiter
-    XCG = FunctionSpace(mesh, "CG", 1)
-    YCG = FunctionSpace(mesh, "CG", 1)
-    ZCG = FunctionSpace(mesh, "CG", 1)
-    VCG = XCG * YCG * ZCG
+    v_hcg = FunctionSpace(mesh, "CG", 1)
+    v_mucg = FunctionSpace(mesh, "CG", 1)
+    v_mvcg = FunctionSpace(mesh, "CG", 1)
+    VCG = v_hcg*v_mucg*v_mvcg
 
     # setup free surface depth
-    g = interpolate(Expression(['1', 0, 0]), V)  # uniform depth
+    g = Function(V)
+    g.sub(0).assign(1)
 
     # setup bed
-    bed = interpolate(Expression(["pow(x[0]-0.5,2)*4", 0, 0]), V)
+    bed = Function(V)
+    x = SpatialCoordinate(V.mesh())
+    bed.sub(0).interpolate(4*pow(x[0]-0.5,2))
 
     # setup actual depth
     w = g.assign(g - bed)
     
     # source term
-    source = interpolate(Expression("0"),X)
+    source = Function(v_h)
 
     w_start = Function(V).assign(w)
 
@@ -53,8 +51,8 @@ def test_well_balanced():
     h_start, mu_start, mv_start = split(w_start)
     h_end, mu_end, mv_end = split(w_end)
 
-    depth_start = Function(X).project(h_start)
-    depth_end = Function(X).project(h_end)
+    depth_start = Function(v_h).project(h_start)
+    depth_end = Function(v_h).project(h_end)
 
     depth_diff = np.max(np.abs(depth_start.dat.data - depth_end.dat.data))
 

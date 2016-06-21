@@ -1,19 +1,13 @@
+""" test conservation of mass in 2d dam break problem """
 
-from __future__ import division  # Get proper divison
+from __future__ import division 
 
 import math
 import random
-
 import numpy as np
 
-
 from firedrake import *
-
 from flooddrake import *
-
-# test conservation of mass on flat 0 bed with both flat source and
-# un-flat source
-
 
 def test_conservation_mass_2d_flat_source():
 
@@ -21,29 +15,29 @@ def test_conservation_mass_2d_flat_source():
     mesh = UnitSquareMesh(n, n)
 
     # mixed function space
-    X = FunctionSpace(mesh, "DG", 1)
-    Y = FunctionSpace(mesh, "DG", 1)
-    Z = FunctionSpace(mesh, "DG", 1)
-    V = X * Y * Z
+    v_h = FunctionSpace(mesh, "DG", 1)
+    v_mu = FunctionSpace(mesh, "DG", 1)
+    v_mv = FunctionSpace(mesh, "DG", 1)
+    V = v_h*v_mu*v_mv
 
     # for slope limiter
-    XCG = FunctionSpace(mesh, "CG", 1)
-    YCG = FunctionSpace(mesh, "CG", 1)
-    ZCG = FunctionSpace(mesh, "CG", 1)
-    VCG = XCG * YCG * ZCG
+    v_hcg = FunctionSpace(mesh, "CG", 1)
+    v_mucg = FunctionSpace(mesh, "CG", 1)
+    v_mvcg = FunctionSpace(mesh, "CG", 1)
+    VCG = v_hcg*v_mucg*v_mvcg
 
     # setup free surface depth
-    g = interpolate(Expression(
-        ['pow(x[0]-0.5,2) + pow(x[1]-0.5,2)< 0.05 ? 0.8 : (pow(x[0]-0.5,2) + pow(x[1]-0.5,2)< 0.05 ? -1.0 : 0.8)', 0, 0]), V)
-
+    g = Function(V)
+    g.sub(0).assign(0.8)
+    
     # setup bed
-    bed = interpolate(Expression(["0", 0, 0]), V)
+    bed = Function(V)
 
     # setup actual depth
     w = g.assign(g - bed)
     
     # source term
-    source = interpolate(Expression("0"),X)
+    source = Function(v_h)
 
     w_start = Function(V).assign(w)
 
@@ -55,13 +49,12 @@ def test_conservation_mass_2d_flat_source():
     h_start, mu_start, mv_start = split(w_start)
     h_end, mu_end, mv_end = split(w_end)
 
-    depth_start = Function(X).project(h_start)
-    depth_end = Function(X).project(h_end)
+    depth_start = Function(v_h).project(h_start)
+    depth_end = Function(v_h).project(h_end)
 
     mass_diff = np.abs(assemble(depth_start * dx) - assemble(depth_end * dx))
 
     assert mass_diff <= 1e-4
-
 
 def test_conservation_mass_2d_unflat_source():
 
@@ -69,29 +62,30 @@ def test_conservation_mass_2d_unflat_source():
     mesh = UnitSquareMesh(n, n)
 
     # mixed function space
-    X = FunctionSpace(mesh, "DG", 1)
-    Y = FunctionSpace(mesh, "DG", 1)
-    Z = FunctionSpace(mesh, "DG", 1)
-    V = X * Y * Z
+    v_h = FunctionSpace(mesh, "DG", 1)
+    v_mu = FunctionSpace(mesh, "DG", 1)
+    v_mv = FunctionSpace(mesh, "DG", 1)
+    V = v_h*v_mu*v_mv
 
     # for slope limiter
-    XCG = FunctionSpace(mesh, "CG", 1)
-    YCG = FunctionSpace(mesh, "CG", 1)
-    ZCG = FunctionSpace(mesh, "CG", 1)
-    VCG = XCG * YCG * ZCG
+    v_hcg = FunctionSpace(mesh, "CG", 1)
+    v_mucg = FunctionSpace(mesh, "CG", 1)
+    v_mvcg = FunctionSpace(mesh, "CG", 1)
+    VCG = v_hcg*v_mucg*v_mvcg
 
     # setup free surface depth
-    g = interpolate(Expression(
-        ['pow(x[0]-0.5,2) + pow(x[1]-0.5,2)< 0.05 ? 1 : (pow(x[0]-0.5,2) + pow(x[1]-0.5,2)< 0.05 ? -1.0 : 0.8)', 0, 0]), V)
+    g = Function(V)
+    x = SpatialCoordinate(V.mesh())
+    g.sub(0).interpolate(conditional(pow(x[0]-0.5,2) + pow(x[1]-0.5,2)< 0.05, 1.0, 0.8))
 
     # setup bed
-    bed = interpolate(Expression(["0", 0, 0]), V)
+    bed = Function(V)
 
     # setup actual depth
     w = g.assign(g - bed)
     
     # source term
-    source = interpolate(Expression("0"),X)
+    source = Function(v_h)
 
     w_start = Function(V).assign(w)
 
@@ -103,8 +97,8 @@ def test_conservation_mass_2d_unflat_source():
     h_start, mu_start, mv_start = split(w_start)
     h_end, mu_end, mv_end = split(w_end)
 
-    depth_start = Function(X).project(h_start)
-    depth_end = Function(X).project(h_end)
+    depth_start = Function(v_h).project(h_start)
+    depth_end = Function(v_h).project(h_end)
 
     mass_diff = np.abs(assemble(depth_start * dx) - assemble(depth_end * dx))
 

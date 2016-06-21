@@ -1,14 +1,11 @@
-
-from __future__ import division  # Get proper divison
+from __future__ import division 
 from __future__ import absolute_import
 
 import math
 import random
 import numpy as np
 
-
 from firedrake import *
-
 
 class ModelParameters(object):
 

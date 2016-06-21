@@ -1,5 +1,4 @@
-
-from __future__ import division  # Get proper divison
+from __future__ import division
 from __future__ import absolute_import
 
 import math
@@ -10,13 +9,11 @@ from flooddrake.flux import Fluxes
 from flooddrake.parameters import ModelParameters
 import numpy as np
 
-
 from firedrake import *
 
 # should really change this child object to the flux, or solver functions,
 # but for now just change to new type of class. When changing, change the
 # object in class header and the super command.
-
 
 class Timestepper(object):
 
