@@ -54,7 +54,7 @@ class Fluxes(object):
             hr, mur = wr[0], wr[1]
             hl, mul = wl[0], wl[1]
 
-            N = self.N[0]
+            N = self.N
 
             # Do HLLE flux
             vr = conditional(hr <= 0, zero(mur.ufl_shape), (mur / hr) * N)
@@ -87,10 +87,12 @@ class Fluxes(object):
             I = as_matrix(((1, 0), (0, 1)))
             C = as_matrix(
                 ((0, 1), ((-v_star * v_star) + (gravity * h_star), (2 * v_star))))
-            A = conditional(eq(c_plus, c_minus), zero(
-                (c_plus - c_minus).ufl_shape), c_plus - c_minus)
-            Q = (((c_plus + c_minus) / (A)) * C) - \
-                (2 * ((c_plus * c_minus) / (A)) * I)
+            
+            yl=((c_plus + c_minus) / (c_plus - c_minus))
+            yr=((c_plus * c_minus) / (c_plus - c_minus))
+            
+            Q = (conditional(eq(c_plus-c_minus,0),zero(yl.ufl_shape),yl) * C) - \
+                (2 * conditional(eq(c_plus-c_minus,0),zero(yr.ufl_shape),yr) * I)
 
             Flux = (0.5 * N * (Fr + Fl)) + (0.5 * dot(Q, Wr - Wl))
 
@@ -217,11 +219,12 @@ class Fluxes(object):
             mul = Constant(0)  # reflecitve in wall - investigate why this it
 
             # Do HLLE flux
-            vr = conditional(h <= 0, zero(mur.ufl_shape), (mur / h) * N)
-            vl = conditional(h <= 0, zero(mul.ufl_shape), (mul / h) * N)
+            vr = conditional(h <= 0, zero(mur.ufl_shape), (mur / h) * N[0])
+            vl = conditional(h <= 0, zero(mul.ufl_shape), (mul / h) * N[0])
 
             h_star = h
-            v_star = ((sqrt(h) * vr) + (sqrt(h) * vl)) / (sqrt(h) + sqrt(h))
+            y=((sqrt(h) * vr) + (sqrt(h) * vl)) / (sqrt(h) + sqrt(h))
+            v_star = conditional(h<=0, zero(y.ufl_shape), y)
 
             c_plus = Max(0, Max(vl + sqrt(gravity * h),
                                 v_star + sqrt(gravity * h_star)))
@@ -242,10 +245,14 @@ class Fluxes(object):
             I = as_matrix(((1, 0), (0, 1)))
             C = as_matrix(
                 ((0, 1), ((-v_star * v_star) + (gravity * h_star), (2 * v_star))))
-            Q = (((c_plus + c_minus) / (c_plus - c_minus)) * C) - \
-                (2 * ((c_plus * c_minus) / (c_plus - c_minus)) * I)
+            
+            yl=((c_plus + c_minus) / (c_plus - c_minus))
+            yr=((c_plus * c_minus) / (c_plus - c_minus))
+            
+            Q = (conditional(eq(c_plus-c_minus,0),zero(yl.ufl_shape),yl) * C) - \
+                (2 * conditional(eq(c_plus-c_minus,0),zero(yr.ufl_shape),yr) * I)
 
-            Flux = (0.5 * N * (Fr + Fl)) + (0.5 * dot(Q, Wr - Wl))
+            Flux = (0.5 * N[0] * (Fr + Fl)) + (0.5 * dot(Q, Wr - Wl))
 
             return Flux
 

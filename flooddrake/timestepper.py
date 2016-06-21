@@ -227,9 +227,14 @@ class Timestepper(object):
 
 
         hout = Function(self.v_h)
+        # free surface depth
         hout_file = File("h.pvd")
+        # bed depth
+        bout = Function(self.v_h).project(self.b_)
+        bout_file = File("b.pvd")
 
         hout_file.write(hout.project(h + self.b_))
+        bout_file.write(bout)
 
         for i in range(Nt):
 
@@ -280,5 +285,6 @@ class Timestepper(object):
             #
 
             hout_file.write(hout.project(h + self.b_))
+            bout_file.write(bout)
 
         return w

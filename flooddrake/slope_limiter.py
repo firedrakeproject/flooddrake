@@ -24,13 +24,24 @@ def SlopeLimiter(w, b, VCG):
     """
 
     V = w.function_space()
-
-    # split functions
-    h, mu, mv = split(w)
-
-    # split function spaces
-    v, vu, vv = split(V)
-    v_cg, vu_cg, vv_cg = split(VCG)
+    
+    if V.mesh().geometric_dimension()==2:
+        
+        # split functions
+        h, mu, mv = split(w)
+        
+        # split function spaces
+        v, vu, vv = split(V)
+        v_cg, vu_cg, vv_cg = split(VCG)
+    
+    if V.mesh().geometric_dimension()==1:
+        
+        # split functions
+        h, mu = split(w)
+        
+        # split function spaces
+        v, vu = split(V)
+        v_cg, vu_cg = split(VCG)
 
     # make a function for bedding
     b_ = Function(v).project(b)
