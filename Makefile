@@ -1,8 +1,4 @@
-all: modules
-
-modules:
-	@echo "    Installing modules"
-	@python setup.py install
+all:
 
 lint:
 	@echo "    Linting flooddrake codebase"
@@ -12,6 +8,6 @@ lint:
 	@echo "    Linting flooddrake demo suite"
 	@flake8 examples
 
-test: modules
+test:
 	@echo "    Running all tests"
 	@py.test tests $(PYTEST_ARGS)
