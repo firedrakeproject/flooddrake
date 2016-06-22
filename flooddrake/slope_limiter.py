@@ -53,46 +53,46 @@ def SlopeLimiter(w, b, VCG):
 
     # Kernel for searching for min and maxes of cell averages
     vert_max_min_kernel = """
-        #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
-        #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
-        for(int i=0;i<vert_cell_max.dofs;i++){
+    #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
+    #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
+    for(int i=0;i<vert_cell_max.dofs;i++){
         vert_cell_max[i][0]=MAX(vert_cell_max[i][0],cell_av[0][0]);
         vert_cell_min[i][0]=MIN(vert_cell_min[i][0],cell_av[0][0]);
-        }
-        """
+    }
+    """
 
     # slope limiting kernel
     slope_limiter_kernel = """ float u_min=1000000.0, u_max=-10000000.0, EPSILON=0;
-        #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
-        #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
-        for(int i=0;i<vert_cell_min.dofs;i++){
+    #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
+    #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
+    for(int i=0;i<vert_cell_min.dofs;i++){
         u_min=MIN(vert_cell_min[i][0],u_min);
         u_max=MAX(vert_cell_max[i][0],u_max);
-        }
-        float alpha=1.0;
-        for(int j=0;j<vert_cell_dg.dofs;j++){
+    }
+    float alpha=1.0;
+    for(int j=0;j<vert_cell_dg.dofs;j++){
         if(vert_cell_dg[j][0]>cell_av[0][0]){
-        alpha=MIN(MIN(1,(u_max-cell_av[0][0])/(vert_cell_dg[j][0]-cell_av[0][0])),alpha);
+            alpha=MIN(MIN(1,(u_max-cell_av[0][0])/(vert_cell_dg[j][0]-cell_av[0][0])),alpha);
         }
         if(vert_cell_dg[j][0]==cell_av[0][0]){
-        alpha=MIN(1,alpha);
+            alpha=MIN(1,alpha);
         }
         if(vert_cell_dg[j][0]<cell_av[0][0]){
-        alpha=MIN(MIN(1,(u_min-cell_av[0][0])/(vert_cell_dg[j][0]-cell_av[0][0])),alpha);
+            alpha=MIN(MIN(1,(u_min-cell_av[0][0])/(vert_cell_dg[j][0]-cell_av[0][0])),alpha);
         }
-        }
-        float a=0;
-        for(int i=0;i<vert_cell_dg.dofs;i++){
+    }
+    float a=0;
+    for(int i=0;i<vert_cell_dg.dofs;i++){
         if (cell_depth[i][0]>EPSILON){
-        a=a+1;
+            a=a+1;
         }
-        }
-        for(int i=0;i<vert_cell_dg.dofs;i++){
+    }
+    for(int i=0;i<vert_cell_dg.dofs;i++){
         if (a==vert_cell_dg.dofs){
-        vert_cell_dg[i][0]=cell_av[0][0] +(alpha*(vert_cell_dg[i][0]-cell_av[0][0]));
+            vert_cell_dg[i][0]=cell_av[0][0] +(alpha*(vert_cell_dg[i][0]-cell_av[0][0]));
         }
-        }
-        """
+    }
+    """
 
     par_loop(vert_max_min_kernel, dx, {
         "cell_av": (c, READ),

@@ -2,10 +2,6 @@
 
 from __future__ import division
 
-import math
-import random
-import numpy as np
-
 from firedrake import *
 from flooddrake import *
 
