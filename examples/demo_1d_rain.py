@@ -16,12 +16,12 @@ mesh = UnitIntervalMesh(n)
 # mixed function space
 v_h = FunctionSpace(mesh, "DG", 1)
 v_mu = FunctionSpace(mesh, "DG", 1)
-V = v_h*v_mu
+V = v_h * v_mu
 
 # for slope limiter
 v_hcg = FunctionSpace(mesh, "CG", 1)
 v_mucg = FunctionSpace(mesh, "CG", 1)
-VCG = v_hcg*v_mucg
+VCG = v_hcg * v_mucg
 
 # setup free surface depth
 g = Function(V)
@@ -29,8 +29,8 @@ g.sub(0).assign(0.5)
 
 # setup bed
 bed = Function(V)
-x=SpatialCoordinate(V.mesh())
-bed.sub(0).interpolate(2*x[0])
+x = SpatialCoordinate(V.mesh())
+bed.sub(0).interpolate(2 * x[0])
 
 # setup actual depth
 w = g.assign(g - bed)

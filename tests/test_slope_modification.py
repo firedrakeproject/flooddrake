@@ -1,6 +1,6 @@
 """ test slope modification """
 
-from __future__ import division 
+from __future__ import division
 
 import math
 import random
@@ -8,6 +8,7 @@ import numpy as np
 
 from firedrake import *
 from flooddrake import *
+
 
 def test_slope_modification():
 
@@ -18,11 +19,13 @@ def test_slope_modification():
     v_h = FunctionSpace(mesh, "DG", 1)
     v_mu = FunctionSpace(mesh, "DG", 1)
     v_mv = FunctionSpace(mesh, "DG", 1)
-    V = v_h*v_mu*v_mv
+    V = v_h * v_mu * v_mv
 
     # setup initial condition -> here all -1's -> these should change to zeros
     w = Function(V)
-    w.sub(0).assign(-1); w.sub(1).assign(-1); w.sub(2).assign(-1)
+    w.sub(0).assign(-1)
+    w.sub(1).assign(-1)
+    w.sub(2).assign(-1)
 
     # slope modification
     W = SlopeModification(w)
@@ -33,13 +36,16 @@ def test_slope_modification():
     # now setup a different initial condition -> here everything should stay
     # same within numerical error
     w = Function(V)
-    w.sub(0).assign(1); w.sub(1).assign(-1); w.sub(2).assign(-1)
+    w.sub(0).assign(1)
+    w.sub(1).assign(-1)
+    w.sub(2).assign(-1)
 
     # slope modification
     W = SlopeModification(w)
     assert np.max(np.abs(W.dat.data[0] - 1)) < 1e-10
     assert np.max(np.abs(W.dat.data[1] + 1)) < 1e-10
     assert np.max(np.abs(W.dat.data[2] + 1)) < 1e-10
+
 
 def test_slope_modification_mean_preserving():
 
@@ -50,18 +56,18 @@ def test_slope_modification_mean_preserving():
     v_h = FunctionSpace(mesh, "DG", 1)
     v_mu = FunctionSpace(mesh, "DG", 1)
     v_mv = FunctionSpace(mesh, "DG", 1)
-    V = v_h*v_mu*v_mv
+    V = v_h * v_mu * v_mv
 
     # mixed functionspace
     v_hav = FunctionSpace(mesh, "DG", 0)
     v_muav = FunctionSpace(mesh, "DG", 0)
     v_mvav = FunctionSpace(mesh, "DG", 0)
-    VAV = v_hav*v_muav*v_mvav
+    VAV = v_hav * v_muav * v_mvav
 
-    # setup initial condition -> here all -1's -> these should change to zeros
+    # setup initial condition
     w = Function(V)
     x = SpatialCoordinate(V.mesh())
-    w.sub(0).interpolate(x[0]*x[1])
+    w.sub(0).interpolate(x[0] * x[1])
 
     cell_av = Function(VAV).project(w)
 

@@ -1,8 +1,6 @@
 from __future__ import division
 from __future__ import absolute_import
 
-import math
-import random
 from flooddrake.slope_modification import SlopeModification
 from flooddrake.slope_limiter import SlopeLimiter
 from flooddrake.flux import Fluxes
@@ -15,31 +13,27 @@ from firedrake import *
 # but for now just change to new type of class. When changing, change the
 # object in class header and the super command.
 
+
 class Timestepper(object):
 
     def __init__(self, V, VCG, bed, source, Courant=0.025):
 
         self.b = bed
-        
+
         # currently source term only works for constant
-        self.source_term=source
-        
+        self.source_term = source
+
         self.mesh = V.mesh()
         self.VCG = VCG
 
         # define solver
         self.v = TestFunction(V)
 
-        n = np.power(
-            (CellVolume(
-                self.mesh).ufl_domain().topology.num_cells() /
-                2.0),
-            1.0 /
-            CellVolume(
-                self.mesh).ufl_domain().geometric_dimension())
-        
+        n = np.power((CellVolume(self.mesh).ufl_domain().topology.num_cells()/2.0),
+                     1.0/CellVolume(self.mesh).ufl_domain().geometric_dimension())
+
         self.dt = Constant(Courant / n)
-        
+
         self.V = V
 
         # define flux and state vectors
@@ -86,12 +80,8 @@ class Timestepper(object):
             velocity_u = conditional(h <= 0, zero(mu.ufl_shape), (mu * mu) / h)
             velocity_v = conditional(h <= 0, zero(mv.ufl_shape), (mv * mv) / h)
 
-            F1 = as_vector(
-                (mu, (velocity_u + ((gravity / 2) * (h * h))), velocity))
-            F2 = as_vector(
-                (mv, velocity, (velocity_v + ((gravity / 2) * (h * h)))))
-
-        ######################## FLUX MODIFICATION #####################
+            F1 = as_vector((mu, (velocity_u + ((gravity / 2) * (h * h))), velocity))
+            F2 = as_vector((mv, velocity, (velocity_v + ((gravity / 2) * (h * h)))))
 
         # height modification
         h_mod_plus = Max(0, h('+') - Max(0, self.b_('-') - self.b_('+')))
@@ -109,17 +99,13 @@ class Timestepper(object):
             mv_mod_minus = (h_mod_minus) * velocity_v('-')
 
             # source modification
-            delta_plus = as_vector((0, 
-            	(gravity/2) * ((h_mod_plus * h_mod_plus) -
-            		(h('+') * h('+'))) * self.N[0]('+'), 
-            	(gravity / 2) * ((h_mod_plus * h_mod_plus) -
-            		(h('+') * h('+'))) * self.N[1]('+')))
-            
-            delta_minus = as_vector((0, 
-            	(gravity / 2) * ((h_mod_minus * h_mod_minus) -
-            		(h('-') * h('-'))) * self.N[0]('+'), 
-            	(gravity / 2) * ((h_mod_minus * h_mod_minus) -
-            		(h('-') * h('-'))) * self.N[1]('+')))
+            delta_plus = as_vector((0,
+                                   (gravity / 2) * ((h_mod_plus * h_mod_plus)-(h('+') * h('+'))) * self.N[0]('+'),
+                                   (gravity / 2) * ((h_mod_plus * h_mod_plus)-(h('+') * h('+'))) * self.N[1]('+')))
+
+            delta_minus = as_vector((0,
+                                    (gravity / 2) * ((h_mod_minus * h_mod_minus)-(h('-') * h('-'))) * self.N[0]('+'),
+                                    (gravity / 2) * ((h_mod_minus * h_mod_minus)-(h('-') * h('-'))) * self.N[1]('+')))
 
             # set up modified state vectors
             w_plus = as_vector((h_mod_plus, mu_mod_plus, mv_mod_plus))
@@ -134,10 +120,10 @@ class Timestepper(object):
             mu_mod_minus = (h_mod_minus) * velocity('-')
 
             # source modification
-            delta_plus = as_vector(
-                (0, (gravity / 2) * ((h_mod_plus * h_mod_plus) - (h('+') * h('+'))) * self.N('+')))
-            delta_minus = as_vector(
-                (0, (gravity / 2) * ((h_mod_minus * h_mod_minus) - (h('-') * h('-'))) * self.N('+')))
+            delta_plus = as_vector((0,
+                                   (gravity / 2) * ((h_mod_plus * h_mod_plus) - (h('+') * h('+'))) * self.N('+')))
+            delta_minus = as_vector((0,
+                                    (gravity / 2) * ((h_mod_minus * h_mod_minus) - (h('-') * h('-'))) * self.N('+')))
 
             # set up modified state vectors
             w_plus = as_vector((h_mod_plus, mu_mod_plus))
@@ -154,37 +140,31 @@ class Timestepper(object):
         if self.mesh.geometric_dimension() == 1:
             source = as_vector((-self.source_term, gravity * h * self.b_.dx(0)))
         if self.mesh.geometric_dimension() == 2:
-            source = as_vector(
-                (-self.source_term, gravity * h * self.b_.dx(0), gravity * h * self.b_.dx(1)))
+            source = as_vector((-self.source_term, gravity * h * self.b_.dx(0), gravity * h * self.b_.dx(1)))
 
-        ####################### SOLVER ######################
-
+        # solver
         if self.mesh.geometric_dimension() == 2:
-            L = (dot(self.v, ((w_ - w) / self.dt)) * dx - 
-            	dot(self.v.dx(0), F1) * dx - 
-            	dot(self.v.dx(1), F2) * dx + 
-            	(dot(self.v('-'), neg_flux) + dot(self.v('+'), pos_flux)) * dS + 
-            	dot(self.v, boundary_flux) * ds + 
-            	(dot(source, self.v)) * dx - 
-            	(dot(self.v('-'), delta_minus) + 
-            	dot(self.v('+'), delta_plus)) * dS )
-        
-        if self.mesh.geometric_dimension() == 1:
-            L = (dot(self.v, ((w_ - w) / self.dt)) * dx - 
-                dot(self.v.dx(0), F) * dx +
-                (dot(self.v('-'),  neg_flux) + dot(self.v('+'), pos_flux)) * dS + 
-                dot(self.v, boundary_flux) * ds + 
-                (dot(source, self.v)) * dx - 
-                (dot(self.v('-'), delta_minus) + 
-                dot(self.v('+'), delta_plus)) * dS )
+            L = (dot(self.v, ((w_ - w) / self.dt)) * dx -
+                 dot(self.v.dx(0), F1) * dx -
+                 dot(self.v.dx(1), F2) * dx +
+                 (dot(self.v('-'), neg_flux) + dot(self.v('+'), pos_flux)) * dS +
+                 dot(self.v, boundary_flux) * ds +
+                 (dot(source, self.v)) * dx -
+                 (dot(self.v('-'), delta_minus) +
+                  dot(self.v('+'), delta_plus)) * dS)
 
-        solve(
-            L == 0,
-            w_,
-            nest=False,
-            solver_parameters={
-                'ksp_type': 'preonly',
-                'pc_type': 'lu'})
+        if self.mesh.geometric_dimension() == 1:
+            L = (dot(self.v, ((w_ - w) / self.dt)) * dx -
+                 dot(self.v.dx(0), F) * dx +
+                 (dot(self.v('-'), neg_flux) + dot(self.v('+'), pos_flux)) * dS +
+                 dot(self.v, boundary_flux) * ds +
+                 (dot(source, self.v)) * dx -
+                 (dot(self.v('-'), delta_minus) +
+                  dot(self.v('+'), delta_plus)) * dS)
+
+        solve(L == 0, w_, nest=False,
+              solver_parameters={'ksp_type': 'preonly',
+                                 'pc_type': 'lu'})
 
         return w_
 
@@ -206,12 +186,9 @@ class Timestepper(object):
 
         # raise timestep error
         if (self.dt.dat.data > t_end):
-            raise ValueError(
-                'end time is less than one timestep or timestep is not factor of end time')
+            raise ValueError('end time is less than one timestep or timestep is not factor of end time')
 
         Nt = int(t_end / self.dt.dat.data)
-
-        ####################### RUNGE-KUTTA SCHEME ####################
 
         # initial slope modification
         w = SlopeModification(w)
@@ -225,7 +202,6 @@ class Timestepper(object):
 
             # index functions and spaces
             h, mu, mv = split(w)
-
 
         hout = Function(self.v_h)
         # free surface depth
