@@ -1,9 +1,36 @@
 language: python
-python:
-  - "2.7"
+python: "2.7"
+addons:
+  apt:
+    packages:
+        - build-essential
+        - python-dev
+        - git
+        - mercurial
+        - python-pip
+        - libopenmpi-dev
+        - openmpi-bin
+        - libblas-dev
+        - liblapack-dev
+        - gfortran
+os:
+  - linux
+
+env:
+  global:
+    - CC=mpicc
 
 before_install:
+  - pip install -U pip
+  - pip install -U virtualenv
   - pip install flake8
 
+install:
+  - curl -O https://raw.githubusercontent.com/firedrakeproject/firedrake/master/scripts/firedrake-install
+  - python ./firedrake-install --disable-ssh --minimal-petsc
+  - . ./firedrake/bin/activate
+  - python setup.py install
+
 script:
-  - flake8 .
+  - make lint
+  - make test
