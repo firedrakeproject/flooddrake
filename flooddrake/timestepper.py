@@ -5,6 +5,7 @@ from flooddrake.slope_modification import SlopeModification
 from flooddrake.slope_limiter import SlopeLimiter
 from flooddrake.flux import Fluxes
 from flooddrake.parameters import ModelParameters
+from flooddrake.dynamic_source_term import Source
 import numpy as np
 
 from firedrake import *
@@ -16,12 +17,13 @@ from firedrake import *
 
 class Timestepper(object):
 
-    def __init__(self, V, VCG, bed, source, Courant=0.025):
+    def __init__(self, V, VCG, bed, source, Courant=0.025, func=lambda x: 1):
 
         self.b = bed
 
         # currently source term only works for constant
         self.source_term = source
+        self.func = func
 
         self.mesh = V.mesh()
         self.VCG = VCG
@@ -138,11 +140,11 @@ class Timestepper(object):
 
         # Define source term
         if self.mesh.geometric_dimension() == 1:
-            source = as_vector((-self.source_term, gravity * h * self.b_.dx(0)))
+            source = as_vector((-Source(self.source_term, self.t, self.func), gravity * h * self.b_.dx(0)))
         if self.mesh.geometric_dimension() == 2:
-            source = as_vector((-self.source_term, gravity * h * self.b_.dx(0), gravity * h * self.b_.dx(1)))
+            source = as_vector((-Source(self.source_term, self.t, self.func), gravity * h * self.b_.dx(0), gravity * h * self.b_.dx(1)))
 
-        # solver
+        # solver - try to make this only once in the new version - by just assigning different values to all variable functions
         if self.mesh.geometric_dimension() == 2:
             L = (dot(self.v, ((w_ - w) / self.dt)) * dx -
                  dot(self.v.dx(0), F1) * dx -
@@ -213,6 +215,8 @@ class Timestepper(object):
         hout_file.write(hout.project(h + self.b_))
         bout_file.write(bout)
 
+        self.t = 0
+
         for i in range(Nt):
 
             w_ = self.__solver_variable(w)
@@ -254,5 +258,7 @@ class Timestepper(object):
 
             hout_file.write(hout.project(h + self.b_))
             bout_file.write(bout)
+
+            self.t += self.dt.dat.data
 
         return w
