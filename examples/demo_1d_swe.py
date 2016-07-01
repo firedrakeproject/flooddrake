@@ -25,7 +25,7 @@ x = SpatialCoordinate(V.mesh())
 g.sub(0).interpolate(conditional(pow(x[0] - 0.8, 2) < 0.01, 2, 1))
 
 # setup bed
-bed = interpolate(Expression(["x[0]*2", 0]), V)
+bed = Function(V)
 bed.sub(0).interpolate(2 * x[0])
 
 # setup actual depth

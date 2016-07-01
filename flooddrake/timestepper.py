@@ -5,7 +5,6 @@ from flooddrake.slope_modification import SlopeModification
 from flooddrake.slope_limiter import SlopeLimiter
 from flooddrake.flux import Fluxes
 from flooddrake.parameters import ModelParameters
-from flooddrake.dynamic_source_term import Source
 import numpy as np
 
 from firedrake import *
@@ -140,9 +139,9 @@ class Timestepper(object):
 
         # Define source term
         if self.mesh.geometric_dimension() == 1:
-            source = as_vector((-Source(self.source_term, self.t, self.func), gravity * h * self.b_.dx(0)))
+            source = as_vector((-self.source_term * self.func(self.t), gravity * h * self.b_.dx(0)))
         if self.mesh.geometric_dimension() == 2:
-            source = as_vector((-Source(self.source_term, self.t, self.func), gravity * h * self.b_.dx(0), gravity * h * self.b_.dx(1)))
+            source = as_vector((-self.source_term * self.func(self.t), gravity * h * self.b_.dx(0), gravity * h * self.b_.dx(1)))
 
         # solver - try to make this only once in the new version - by just assigning different values to all variable functions
         if self.mesh.geometric_dimension() == 2:
