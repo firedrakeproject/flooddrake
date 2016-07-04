@@ -10,29 +10,27 @@ from flooddrake import *
 
 def test_well_balanced():
 
-    n = 5
-    mesh = UnitSquareMesh(n, n)
+    n = 40
+    mesh = UnitIntervalMesh(n)
 
     # mixed function space
     v_h = FunctionSpace(mesh, "DG", 1)
     v_mu = FunctionSpace(mesh, "DG", 1)
-    v_mv = FunctionSpace(mesh, "DG", 1)
-    V = v_h * v_mu * v_mv
+    V = v_h * v_mu
 
     # for slope limiter
     v_hcg = FunctionSpace(mesh, "CG", 1)
     v_mucg = FunctionSpace(mesh, "CG", 1)
-    v_mvcg = FunctionSpace(mesh, "CG", 1)
-    VCG = v_hcg * v_mucg * v_mvcg
+    VCG = v_hcg * v_mucg
 
     # setup free surface depth
     g = Function(V)
-    g.sub(0).assign(1)
+    x = SpatialCoordinate(V.mesh())
+    g.sub(0).assign(0.4)
 
     # setup bed
     bed = Function(V)
-    x = SpatialCoordinate(V.mesh())
-    bed.sub(0).interpolate(4 * pow(x[0] - 0.5, 2))
+    bed.sub(0).interpolate(conditional(x[0] > 0.75, 2 * (1-x[0]), 2 * abs(x[0]-0.5)))
 
     # setup actual depth
     w = g.assign(g - bed)
@@ -41,16 +39,17 @@ def test_well_balanced():
     source = Function(v_h)
 
     w_start = Function(V).assign(w)
+    ds = SlopeModification(w_start)
+    depth_start = Function(v_h).project(ds.sub(0))
 
     # timestep
     t_end = 0.01
     solution = Timestepper(V, VCG, bed, source, Courant=0.025)
     w_end = solution.stepper(0, t_end, w)
 
-    h_start, mu_start, mv_start = split(w_start)
-    h_end, mu_end, mv_end = split(w_end)
+    h_start, mu_start = split(w_start)
+    h_end, mu_end = split(w_end)
 
-    depth_start = Function(v_h).project(h_start)
     depth_end = Function(v_h).project(h_end)
 
     depth_diff = np.max(np.abs(depth_start.dat.data - depth_end.dat.data))
