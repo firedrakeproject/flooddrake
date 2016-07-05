@@ -51,6 +51,9 @@ class Timestepper(object):
 
         self.gravity = ModelParameters().g
 
+        self.SM = SlopeModification(self.V)
+        self.SL = SlopeLimiter(self.b_, self.V, self.VCG)
+
         super(Timestepper, self).__init__()
 
     def __update_slope_modification(self):
@@ -58,18 +61,14 @@ class Timestepper(object):
 
         """
 
-        S = SlopeModification(self.w)
-
-        self.w.assign(S)
+        self.w.assign(self.SM.Modification(self.w))
 
     def __update_slope_limiter(self):
         """ Updates slope limiter
 
         """
 
-        S = SlopeLimiter(self.w, self.b_, self.VCG)
-
-        self.w.assign(S)
+        self.w.assign(self.SL.Limiter(self.w))
 
     def __solver_setup(self):
         """ Sets up the solver
@@ -178,8 +177,11 @@ class Timestepper(object):
                       (dot(self.v('-'), self.delta_minus) +
                       dot(self.v('+'), self.delta_plus)) * dS)
 
-        self.problem = NonlinearVariationalProblem(self.L, self.w_)
-        self.solver = NonlinearVariationalSolver(self.problem)
+        self.problem = NonlinearVariationalProblem(self.L, self.w_, nest=False)
+        self.solver = NonlinearVariationalSolver(self.problem,
+                                                 solver_parameters={'ksp_type': 'cg',
+                                                                    'sub_pc_type': 'bjacobi',
+                                                                    'pc_type': 'ilu'})
 
     def stepper(self, t_start, t_end, w):
         """ Timesteps the shallow water equations from t_start to t_end using a 3rd order SSP Runge-Kutta scheme

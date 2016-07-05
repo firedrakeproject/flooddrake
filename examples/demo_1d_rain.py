@@ -22,7 +22,7 @@ VCG = v_hcg * v_mucg
 # setup free surface depth
 g = Function(V)
 x = SpatialCoordinate(V.mesh())
-g.sub(0).assign(0.5)
+g.sub(0).assign(0.4)
 
 # setup bed
 bed = Function(V)
@@ -39,4 +39,4 @@ source = Function(v_h).assign(0.005)  # realisatic rainfall - 60 mm h^-1
 # timestep
 solution = Timestepper(V, VCG, bed, source, 0.025)
 
-solution.stepper(0, 1, w)
+solution.stepper(0, 10, w)

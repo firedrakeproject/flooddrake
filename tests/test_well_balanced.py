@@ -39,7 +39,8 @@ def test_well_balanced():
     source = Function(v_h)
 
     w_start = Function(V).assign(w)
-    ds = SlopeModification(w_start)
+    SM = SlopeModification(V)
+    ds = SM.Modification(w_start)
     depth_start = Function(v_h).project(ds.sub(0))
 
     # timestep
