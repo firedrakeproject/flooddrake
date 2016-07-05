@@ -213,4 +213,6 @@ def SlopeModification(w):
             "vert_u_cell": (mu, READ)
         })
 
-    return nf
+    w.assign(nf)
+
+    return w

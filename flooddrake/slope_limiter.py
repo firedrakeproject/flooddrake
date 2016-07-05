@@ -42,8 +42,6 @@ def SlopeLimiter(w, b, VCG):
     # get free surface depth function
     v_func = Function(v).project(h + b_)
 
-    W = Function(V).assign(w)
-
     # define the cg function to find maximum and minimum values for each vertex
     v_max_cg = Function(v_cg).assign(-1000000)
     v_min_cg = Function(v_cg).assign(1000000)
@@ -109,6 +107,6 @@ def SlopeLimiter(w, b, VCG):
     })
 
     # limited depth to state vector function
-    W.sub(0).assign(v_func - b_)
+    w.sub(0).assign(v_func - b_)
 
-    return W
+    return w

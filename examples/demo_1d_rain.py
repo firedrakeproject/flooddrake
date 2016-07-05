@@ -39,4 +39,4 @@ source = Function(v_h).assign(0.005)  # realisatic rainfall - 60 mm h^-1
 # timestep
 solution = Timestepper(V, VCG, bed, source, 0.025)
 
-solution.stepper(0, 4, w)
+solution.stepper(0, 1, w)
