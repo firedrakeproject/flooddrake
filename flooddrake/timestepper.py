@@ -178,6 +178,9 @@ class Timestepper(object):
                       (dot(self.v('-'), self.delta_minus) +
                       dot(self.v('+'), self.delta_plus)) * dS)
 
+        self.problem = NonlinearVariationalProblem(self.L, self.w_)
+        self.solver = NonlinearVariationalSolver(self.problem)
+
     def stepper(self, t_start, t_end, w):
         """ Timesteps the shallow water equations from t_start to t_end using a 3rd order SSP Runge-Kutta scheme
 
@@ -215,34 +218,30 @@ class Timestepper(object):
         bout = Function(self.v_h).project(self.b_)
         bout_file = File("b.pvd")
 
-        hout_file.write(hout.project(self.h + self.b_))
+        self.Project = Projector(self.h + self.b_, hout)
+        self.Project.project()
+        hout_file.write(hout)
         bout_file.write(bout)
 
         self.t = 0
 
         for i in range(Nt):
 
-            solve(self.L == 0, self.w_, nest=False,
-                  solver_parameters={'ksp_type': 'preonly',
-                                     'pc_type': 'lu'})
+            self.solver.solve()
 
             self.w.assign(self.w_)
 
             # slope modification
             self.__update_slope_modification()
 
-            solve(self.L == 0, self.w_, nest=False,
-                  solver_parameters={'ksp_type': 'preonly',
-                                     'pc_type': 'lu'})
+            self.solver.solve()
 
             self.w.assign((3.0 / 4.0) * self.w_old + (1.0 / 4.0) * self.w_)
 
             # slope modification
             self.__update_slope_modification()
 
-            solve(self.L == 0, self.w_, nest=False,
-                  solver_parameters={'ksp_type': 'preonly',
-                                     'pc_type': 'lu'})
+            self.solver.solve()
 
             self.w.assign((1.0 / 3.0) * self.w_old + (2.0 / 3.0) * self.w_)
 
@@ -255,7 +254,8 @@ class Timestepper(object):
 
             # timstep complete
 
-            hout_file.write(hout.project(self.h + self.b_))
+            self.Project.project()
+            hout_file.write(hout)
             bout_file.write(bout)
 
             self.t += self.dt.dat.data
