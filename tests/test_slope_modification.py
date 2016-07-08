@@ -37,14 +37,14 @@ def test_slope_modification():
     # same within numerical error
     w = Function(V)
     w.sub(0).assign(1)
-    w.sub(1).assign(-1)
-    w.sub(2).assign(-1)
+    w.sub(1).assign(-0.2)
+    w.sub(2).assign(-0.2)
 
     # slope modification
     W = SM.Modification(w)
     assert np.max(np.abs(W.dat.data[0] - 1)) < 1e-10
-    assert np.max(np.abs(W.dat.data[1] + 1)) < 1e-10
-    assert np.max(np.abs(W.dat.data[2] + 1)) < 1e-10
+    assert np.max(np.abs(W.dat.data[1] + 0.2)) < 1e-10
+    assert np.max(np.abs(W.dat.data[2] + 0.2)) < 1e-10
 
 
 def test_slope_modification_mean_preserving():

@@ -48,7 +48,7 @@ class SlopeLimiter(object):
         """
 
         # slope limiting kernel
-        self.slope_limiter_kernel = """ float u_min=1000000.0, u_max=-10000000.0, EPSILON=0;
+        self.slope_limiter_kernel = """ float u_min=1000000.0, u_max=-10000000.0;
         #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
         #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
         for(int i=0;i<vert_cell_min.dofs;i++){
@@ -67,16 +67,8 @@ class SlopeLimiter(object):
                 alpha=MIN(MIN(1,(u_min-cell_av[0][0])/(vert_cell_dg[j][0]-cell_av[0][0])),alpha);
             }
         }
-        float a=0;
         for(int i=0;i<vert_cell_dg.dofs;i++){
-            if (cell_depth[i][0]>EPSILON){
-                a=a+1;
-            }
-        }
-        for(int i=0;i<vert_cell_dg.dofs;i++){
-            if (a==vert_cell_dg.dofs){
-                vert_cell_dg[i][0]=cell_av[0][0] +(alpha*(vert_cell_dg[i][0]-cell_av[0][0]));
-            }
+            vert_cell_dg[i][0]=cell_av[0][0] +(alpha*(vert_cell_dg[i][0]-cell_av[0][0]));
         }
         """
 
@@ -114,8 +106,7 @@ class SlopeLimiter(object):
             "vert_cell_dg": (self.v_func, RW),
             "vert_cell_min": (self.v_min_cg, READ),
             "vert_cell_max": (self.v_max_cg, READ),
-            "cell_av": (self.c, READ),
-            "cell_depth": (h, READ)
+            "cell_av": (self.c, READ)
         })
 
         # limited depth to state vector function
