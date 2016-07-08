@@ -4,76 +4,57 @@ from __future__ import absolute_import
 from firedrake import *
 
 
-def SlopeModification(w):
-    """ Slope modification for the prevention of non negative flows in some verticies of cells. This is from Ern et al (2011)
+class SlopeModification(object):
 
-        :param w: state vector
+    def __init__(self, V):
 
-    """
+        self.V = V
 
-    V = w.function_space()
+        if self.V.mesh().geometric_dimension() == 2:
 
-    if V.mesh().geometric_dimension() == 2:
+            # split function spaces
+            self.v, self.vu, self.vv = split(self.V)
 
-        # split functions
-        h, mu, mv = split(w)
+        if self.V.mesh().geometric_dimension() == 1:
 
-        # split function spaces
-        v, vu, vv = split(V)
+            # split function spaces
+            self.v, self.vu = split(self.V)
 
-    if V.mesh().geometric_dimension() == 1:
+        self.nf = Function(self.V)
 
-        # split functions
-        h, mu = split(w)
+        if self.V.mesh().geometric_dimension() == 2:
+            self.new_v_func, self.new_v_u_func, self.new_v_v_func = split(self.nf)
 
-        # split function spaces
-        v, vu = split(V)
+        if self.V.mesh().geometric_dimension() == 1:
+            self.new_v_func, self.new_v_u_func = split(self.nf)
 
-    slope_modification_2d_kernel = """ double new_cell = 0; const E=1e-6, UB=1e0; int j;
-    for(int i=0;i<vert_cell.dofs;i++){
-        new_cell+=vert_cell[i][0];
-    }
-    new_cell=new_cell/vert_cell.dofs;
-    if (new_cell<=E){
-        for(int i=0;i<new_vert_cell.dofs;i++){
-            new_vert_cell[i][0]=0;
-            new_vert_u_cell[i][0]=0;
-            new_vert_v_cell[i][0]=0;
+        self.slope_modification_2d_kernel = """ double new_cell = 0; const E=1e-6, UB=1e0; int j;
+        for(int i=0;i<vert_cell.dofs;i++){
+            new_cell+=vert_cell[i][0];
         }
-    }
-    if (new_cell>E){
-        float c=0;
-        for(int i=0;i<new_vert_cell.dofs;i++){
-            if (vert_cell[i][0]>E){
-                new_vert_cell[i][0]=vert_cell[i][0];
-                new_vert_u_cell[i][0]=vert_u_cell[i][0];
-                new_vert_v_cell[i][0]=vert_v_cell[i][0];
-            }
-            if (vert_cell[i][0]<=E){
-                c=c+1;
-                j=i;
-            }
-        }
-        if (c==0){
+        new_cell=new_cell/vert_cell.dofs;
+        if (new_cell<=E){
             for(int i=0;i<new_vert_cell.dofs;i++){
-                if (new_vert_u_cell[i][0]/new_vert_cell[i][0]>UB){
-                    new_vert_u_cell[i][0]=UB*new_vert_cell[i][0];
-                }
-                if (new_vert_v_cell[i][0]/new_vert_cell[i][0]>UB){
-                    new_vert_v_cell[i][0]=UB*new_vert_cell[i][0];
-                }
-                if ((new_vert_u_cell[i][0]/new_vert_cell[i][0])<-UB){
-                    new_vert_u_cell[i][0]=(-UB)*new_vert_cell[i][0];
-                }
-                if ((new_vert_v_cell[i][0]/new_vert_cell[i][0])<-UB){
-                    new_vert_v_cell[i][0]=(-UB)*new_vert_cell[i][0];
-                }
+                new_vert_cell[i][0]=0;
+                new_vert_u_cell[i][0]=0;
+                new_vert_v_cell[i][0]=0;
             }
         }
-        if (c==1){
+        if (new_cell>E){
+            float c=0;
             for(int i=0;i<new_vert_cell.dofs;i++){
-                new_vert_cell[i][0]=(new_cell/(new_cell-vert_cell[j][0]))*(vert_cell[i][0]-vert_cell[j][0]);
-                if (new_vert_cell[i][0]>0){
+                if (vert_cell[i][0]>E){
+                    new_vert_cell[i][0]=vert_cell[i][0];
+                    new_vert_u_cell[i][0]=vert_u_cell[i][0];
+                    new_vert_v_cell[i][0]=vert_v_cell[i][0];
+                }
+                if (vert_cell[i][0]<=E){
+                    c=c+1;
+                    j=i;
+                }
+            }
+            if (c==0){
+                for(int i=0;i<new_vert_cell.dofs;i++){
                     if (new_vert_u_cell[i][0]/new_vert_cell[i][0]>UB){
                         new_vert_u_cell[i][0]=UB*new_vert_cell[i][0];
                     }
@@ -88,91 +69,79 @@ def SlopeModification(w):
                     }
                 }
             }
-            new_vert_u_cell[j][0]=0;
-            new_vert_v_cell[j][0]=0;
-        }
-        if (c==2){
-            for(int i=0;i<new_vert_cell.dofs;i++){
-                if (vert_cell[i][0]<=E){
-                    new_vert_cell[i][0]=0;
-                    new_vert_u_cell[i][0]=0;
-                    new_vert_v_cell[i][0]=0;
+            if (c==1){
+                for(int i=0;i<new_vert_cell.dofs;i++){
+                    new_vert_cell[i][0]=(new_cell/(new_cell-vert_cell[j][0]))*(vert_cell[i][0]-vert_cell[j][0]);
+                    if (new_vert_cell[i][0]>0){
+                        if (new_vert_u_cell[i][0]/new_vert_cell[i][0]>UB){
+                            new_vert_u_cell[i][0]=UB*new_vert_cell[i][0];
+                        }
+                        if (new_vert_v_cell[i][0]/new_vert_cell[i][0]>UB){
+                            new_vert_v_cell[i][0]=UB*new_vert_cell[i][0];
+                        }
+                        if ((new_vert_u_cell[i][0]/new_vert_cell[i][0])<-UB){
+                            new_vert_u_cell[i][0]=(-UB)*new_vert_cell[i][0];
+                        }
+                        if ((new_vert_v_cell[i][0]/new_vert_cell[i][0])<-UB){
+                            new_vert_v_cell[i][0]=(-UB)*new_vert_cell[i][0];
+                        }
+                    }
                 }
+                new_vert_u_cell[j][0]=0;
+                new_vert_v_cell[j][0]=0;
+            }
+            if (c==2){
+                for(int i=0;i<new_vert_cell.dofs;i++){
+                    if (vert_cell[i][0]<=E){
+                        new_vert_cell[i][0]=0;
+                        new_vert_u_cell[i][0]=0;
+                        new_vert_v_cell[i][0]=0;
+                    }
+                    if (vert_cell[i][0]>E){
+                        new_vert_cell[i][0]=new_cell*3;
+                        if (new_vert_u_cell[i][0]/new_vert_cell[i][0]>UB){
+                            new_vert_u_cell[i][0]=UB*new_vert_cell[i][0];
+                        }
+                        if (new_vert_v_cell[i][0]/new_vert_cell[i][0]>UB){
+                            new_vert_v_cell[i][0]=UB*new_vert_cell[i][0];
+                        }
+                        if ((new_vert_u_cell[i][0]/new_vert_cell[i][0])<-UB){
+                            new_vert_u_cell[i][0]=(-UB)*new_vert_cell[i][0];
+                        }
+                        if ((new_vert_v_cell[i][0]/new_vert_cell[i][0])<-UB){
+                            new_vert_v_cell[i][0]=(-UB)*new_vert_cell[i][0];
+                        }
+                    }
+                }
+            }
+        }
+        """
+
+        self.slope_modification_1d_kernel = """ double new_cell = 0; const E=1e-6, UB=1e0; int j;
+        for(int i=0;i<vert_cell.dofs;i++){
+            new_cell+=vert_cell[i][0];
+        }
+        new_cell=new_cell/vert_cell.dofs;
+        if (new_cell<=E){
+            for(int i=0;i<new_vert_cell.dofs;i++){
+                new_vert_cell[i][0]=0;
+                new_vert_u_cell[i][0]=0;
+            }
+        }
+        if (new_cell>E){
+            float c=0;
+            for(int i=0;i<new_vert_cell.dofs;i++){
                 if (vert_cell[i][0]>E){
-                    new_vert_cell[i][0]=new_cell*3;
-                    if (new_vert_u_cell[i][0]/new_vert_cell[i][0]>UB){
-                        new_vert_u_cell[i][0]=UB*new_vert_cell[i][0];
-                    }
-                    if (new_vert_v_cell[i][0]/new_vert_cell[i][0]>UB){
-                        new_vert_v_cell[i][0]=UB*new_vert_cell[i][0];
-                    }
-                    if ((new_vert_u_cell[i][0]/new_vert_cell[i][0])<-UB){
-                        new_vert_u_cell[i][0]=(-UB)*new_vert_cell[i][0];
-                    }
-                    if ((new_vert_v_cell[i][0]/new_vert_cell[i][0])<-UB){
-                        new_vert_v_cell[i][0]=(-UB)*new_vert_cell[i][0];
-                    }
+                    new_vert_cell[i][0]=vert_cell[i][0];
+                    new_vert_u_cell[i][0]=vert_u_cell[i][0];
                 }
-            }
-        }
-    }
-    """
-
-    slope_modification_1d_kernel = """ double new_cell = 0; const E=1e-6, UB=1e0; int j;
-    for(int i=0;i<vert_cell.dofs;i++){
-        new_cell+=vert_cell[i][0];
-    }
-    new_cell=new_cell/vert_cell.dofs;
-    if (new_cell<=E){
-        for(int i=0;i<new_vert_cell.dofs;i++){
-            new_vert_cell[i][0]=0;
-            new_vert_u_cell[i][0]=0;
-        }
-    }
-    if (new_cell>E){
-        float c=0;
-        for(int i=0;i<new_vert_cell.dofs;i++){
-            if (vert_cell[i][0]>E){
-                new_vert_cell[i][0]=vert_cell[i][0];
-                new_vert_u_cell[i][0]=vert_u_cell[i][0];
-            }
-            if (vert_cell[i][0]<=E){
-                c=c+1;
-                j=i;
-            }
-        }
-        if (c==0){
-            for(int i=0;i<new_vert_cell.dofs;i++){
-                if (new_vert_u_cell[i][0]/new_vert_cell[i][0]>UB){
-                    new_vert_u_cell[i][0]=UB*new_vert_cell[i][0];
-                }
-                if ((new_vert_u_cell[i][0]/new_vert_cell[i][0])<-UB){
-                    new_vert_u_cell[i][0]=(-UB)*new_vert_cell[i][0];
-                }
-            }
-        }
-        if (c==1){
-            for(int i=0;i<new_vert_cell.dofs;i++){
-                new_vert_cell[i][0]=(new_cell/(new_cell-vert_cell[j][0]))*(vert_cell[i][0]-vert_cell[j][0]);
-                if (new_vert_cell[i][0]>0){
-                    if (new_vert_u_cell[i][0]/new_vert_cell[i][0]>UB){
-                        new_vert_u_cell[i][0]=UB*new_vert_cell[i][0];
-                    }
-                    if ((new_vert_u_cell[i][0]/new_vert_cell[i][0])<-UB){
-                        new_vert_u_cell[i][0]=(-UB)*new_vert_cell[i][0];
-                    }
-                }
-            }
-            new_vert_u_cell[j][0]=0;
-        }
-        if (c==2){
-            for(int i=0;i<new_vert_cell.dofs;i++){
                 if (vert_cell[i][0]<=E){
-                    new_vert_cell[i][0]=0;
-                    new_vert_u_cell[i][0]=0;
+                    c=c+1;
+                    j=i;
                 }
-                if (vert_cell[i][0]>E){
-                    new_vert_cell[i][0]=new_cell*3;
+            }
+            if (c==0){
+                for(int i=0;i<new_vert_cell.dofs;i++){
                     if (new_vert_u_cell[i][0]/new_vert_cell[i][0]>UB){
                         new_vert_u_cell[i][0]=UB*new_vert_cell[i][0];
                     }
@@ -181,36 +150,81 @@ def SlopeModification(w):
                     }
                 }
             }
+            if (c==1){
+                for(int i=0;i<new_vert_cell.dofs;i++){
+                    new_vert_cell[i][0]=(new_cell/(new_cell-vert_cell[j][0]))*(vert_cell[i][0]-vert_cell[j][0]);
+                    if (new_vert_cell[i][0]>0){
+                        if (new_vert_u_cell[i][0]/new_vert_cell[i][0]>UB){
+                            new_vert_u_cell[i][0]=UB*new_vert_cell[i][0];
+                        }
+                        if ((new_vert_u_cell[i][0]/new_vert_cell[i][0])<-UB){
+                            new_vert_u_cell[i][0]=(-UB)*new_vert_cell[i][0];
+                        }
+                    }
+                }
+                new_vert_u_cell[j][0]=0;
+            }
+            if (c==2){
+                for(int i=0;i<new_vert_cell.dofs;i++){
+                    if (vert_cell[i][0]<=E){
+                        new_vert_cell[i][0]=0;
+                        new_vert_u_cell[i][0]=0;
+                    }
+                    if (vert_cell[i][0]>E){
+                        new_vert_cell[i][0]=new_cell*3;
+                        if (new_vert_u_cell[i][0]/new_vert_cell[i][0]>UB){
+                            new_vert_u_cell[i][0]=UB*new_vert_cell[i][0];
+                        }
+                        if ((new_vert_u_cell[i][0]/new_vert_cell[i][0])<-UB){
+                            new_vert_u_cell[i][0]=(-UB)*new_vert_cell[i][0];
+                        }
+                    }
+                }
+            }
         }
-    }
-    """
+        """
 
-    nf = Function(V)
+        super(SlopeModification, self).__init__()
 
-    if V.mesh().geometric_dimension() == 2:
-        new_v_func, new_v_u_func, new_v_v_func = split(nf)
+    def Modification(self, w):
+        """ Slope modification for the prevention of non negative flows in some verticies of cells. This is from Ern et al (2011)
 
-    if V.mesh().geometric_dimension() == 1:
-        new_v_func, new_v_u_func = split(nf)
+            :param w: state vector
 
-    # par loop
+        """
 
-    if V.mesh().geometric_dimension() == 2:
-        par_loop(slope_modification_2d_kernel, dx, {
-            "new_vert_v_cell": (new_v_v_func, RW),
-            "new_vert_u_cell": (new_v_u_func, RW),
-            "new_vert_cell": (new_v_func, RW),
-            "vert_cell": (h, READ),
-            "vert_u_cell": (mu, READ),
-            "vert_v_cell": (mv, READ)
-        })
+        if self.V.mesh().geometric_dimension() == 2:
 
-    if V.mesh().geometric_dimension() == 1:
-        par_loop(slope_modification_1d_kernel, dx, {
-            "new_vert_u_cell": (new_v_u_func, RW),
-            "new_vert_cell": (new_v_func, RW),
-            "vert_cell": (h, READ),
-            "vert_u_cell": (mu, READ)
-        })
+            # split functions
+            h, mu, mv = split(w)
 
-    return nf
+        if self.V.mesh().geometric_dimension() == 1:
+
+            # split functions
+            h, mu = split(w)
+
+        self.nf.assign(0)
+
+        # par loop
+
+        if self.V.mesh().geometric_dimension() == 2:
+            par_loop(self.slope_modification_2d_kernel, dx, {
+                "new_vert_v_cell": (self.new_v_v_func, RW),
+                "new_vert_u_cell": (self.new_v_u_func, RW),
+                "new_vert_cell": (self.new_v_func, RW),
+                "vert_cell": (h, READ),
+                "vert_u_cell": (mu, READ),
+                "vert_v_cell": (mv, READ)
+            })
+
+        if self.V.mesh().geometric_dimension() == 1:
+            par_loop(self.slope_modification_1d_kernel, dx, {
+                "new_vert_u_cell": (self.new_v_u_func, RW),
+                "new_vert_cell": (self.new_v_func, RW),
+                "vert_cell": (h, READ),
+                "vert_u_cell": (mu, READ)
+            })
+
+        w.assign(self.nf)
+
+        return w

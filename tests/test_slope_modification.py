@@ -25,8 +25,10 @@ def test_slope_modification():
     w.sub(1).assign(-1)
     w.sub(2).assign(-1)
 
+    SM = SlopeModification(V)
+
     # slope modification
-    W = SlopeModification(w)
+    W = SM.Modification(w)
     assert np.max(np.abs(W.dat.data[0])) < 1e-10
     assert np.max(np.abs(W.dat.data[1])) < 1e-10
     assert np.max(np.abs(W.dat.data[2])) < 1e-10
@@ -39,7 +41,7 @@ def test_slope_modification():
     w.sub(2).assign(-1)
 
     # slope modification
-    W = SlopeModification(w)
+    W = SM.Modification(w)
     assert np.max(np.abs(W.dat.data[0] - 1)) < 1e-10
     assert np.max(np.abs(W.dat.data[1] + 1)) < 1e-10
     assert np.max(np.abs(W.dat.data[2] + 1)) < 1e-10
@@ -69,8 +71,10 @@ def test_slope_modification_mean_preserving():
 
     cell_av = Function(VAV).project(w)
 
+    SM = SlopeModification(V)
+
     # slope modification
-    W = SlopeModification(w)
+    W = SM.Modification(w)
 
     new_cell_av = Function(VAV).project(W)
 

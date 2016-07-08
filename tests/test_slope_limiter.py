@@ -40,7 +40,8 @@ def test_slope_limiter():
     b_, b1, b2 = split(b)
 
     # slope limiting
-    W = SlopeLimiter(w, b_, VCG)
+    SL = SlopeLimiter(b_, V, VCG)
+    W = SL.Limiter(w)
 
     # check that it's invariant as all cell averages are same.
     assert np.max(np.abs(W.dat.data[0] - w.dat.data[0])) < 1e-10
@@ -84,7 +85,8 @@ def test_slope_limiter_mean_preserving():
     b_, b1, b2 = split(b)
 
     # slope limiting
-    W = SlopeLimiter(w, b_, VCG)
+    SL = SlopeLimiter(b_, V, VCG)
+    W = SL.Limiter(w)
 
     new_cell_av = Function(VAV).project(W)
 
