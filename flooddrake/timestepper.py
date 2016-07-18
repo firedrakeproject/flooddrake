@@ -42,6 +42,7 @@ class Timestepper(object):
         dx = Dx.comm.allreduce(Dx.dat.data_ro.min(), MPI.MIN)
 
         self.dt = Courant * dx
+        self.initial_dt = Courant * dx
         self.Dt = Constant(self.dt)
 
         self.V = V
@@ -229,19 +230,21 @@ class Timestepper(object):
         self.t = t_start
 
         # start counter of how many time dumps
-        c = 1
+        self.c = 1
 
         while self.t < t_end:
 
             # check if remaining time to next time dump is less than timestep
             # correct if neeeded
-            if self.dt + self.t > c * t_dump:
-                self.dt = (c * t_dump) - self.t
+            if self.dt + self.t > self.c * t_dump:
+                self.dt = (self.c * t_dump) - self.t
+                self.Dt.assign(self.dt)
 
             # check if remaining time to end time is less than timestep
             # correct if needed
-            if self.dt + self.t > t_end:
+            if (self.t <= (self.c + 1) * t_dump) and (self.dt + self.t > t_end):
                 self.dt = t_end - self.t
+                self.Dt.assign(self.dt)
 
             self.solver.solve()
 
@@ -269,18 +272,20 @@ class Timestepper(object):
             self.w_old.assign(self.w)
 
             # timstep complete - dump realisation if needed
-            if self.t == c * t_dump:
+            self.t += self.dt
+
+            if self.t == self.c * t_dump:
                 self.Project.project()
                 hout_file.write(hout)
                 bout_file.write(bout)
 
-                c += 1
+                self.c += 1
 
-                self.dt = self.Dt.dat.data[0]
-
-            self.t += self.dt
+                self.dt = self.initial_dt
+                self.Dt.assign(self.dt)
 
         # return timestep
-        self.dt = self.Dt.dat.data[0]
+        self.dt = self.initial_dt
+        self.Dt.assign(self.dt)
 
         return self.w
