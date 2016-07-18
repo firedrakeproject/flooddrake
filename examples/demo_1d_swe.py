@@ -35,6 +35,6 @@ w = g.assign(g - bed)
 source = Function(v_h)
 
 # timestep
-solution = Timestepper(V, VCG, bed, source, 0.025)
+solution = Timestepper(V, VCG, bed, source, 0.25)
 
-solution.stepper(0, 0.75, w)
+solution.stepper(0, 0.75, w, 0.025)

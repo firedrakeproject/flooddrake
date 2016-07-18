@@ -40,4 +40,4 @@ source = Function(v_h)
 # timestep
 solution = Timestepper(V, VCG, bed, source, float(0.00625 / 4.0))
 
-solution.stepper(0, 2, w)
+solution.stepper(0, 2, w, 0.025)
