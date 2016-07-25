@@ -5,4 +5,4 @@ from flooddrake.timestepper import *  # noqa
 from flooddrake.flux import *  # noqa
 from flooddrake.slope_limiter import *  # noqa
 from flooddrake.parameters import *  # noqa
-from flooddrake.max_dx import *  # noqa
+from flooddrake.min_dx import *  # noqa

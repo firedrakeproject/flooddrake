@@ -43,7 +43,7 @@ def test_timestepper_1():
     solution = Timestepper(V, VCG, bed, source, Courant=0.015)
     solution.stepper(0, t_end, w, 0.025)
 
-    assert solution.dt == (0.015 / n)
+    assert np.abs(solution.dt - (0.015 / n)) < 1e-8
 
     assert solution.t == t_end
 

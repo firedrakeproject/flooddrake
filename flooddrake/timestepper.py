@@ -5,9 +5,7 @@ from flooddrake.slope_modification import SlopeModification
 from flooddrake.slope_limiter import SlopeLimiter
 from flooddrake.flux import Interior_Flux, Boundary_Flux
 from flooddrake.parameters import ModelParameters
-from flooddrake.max_dx import MaxDx
-
-from mpi4py import MPI
+from flooddrake.min_dx import MinDx
 
 from firedrake import *
 
@@ -35,14 +33,11 @@ class Timestepper(object):
         # define solver
         self.v = TestFunction(V)
 
-        # Compute max lengths of each cell in DG0 function
-        Dx = MaxDx(self.mesh)
+        # Compute global minimum of cell edge length
+        self.delta_x = MinDx(self.mesh)
 
-        # Compute global maximum
-        dx = Dx.comm.allreduce(Dx.dat.data_ro.min(), MPI.MIN)
-
-        self.dt = Courant * dx
-        self.initial_dt = Courant * dx
+        self.dt = Courant * self.delta_x
+        self.initial_dt = Courant * self.delta_x
         self.Dt = Constant(self.dt)
 
         self.V = V
@@ -201,6 +196,9 @@ class Timestepper(object):
                 :type t_end: float
 
                 :param w: Current state vector function
+
+                :param t_dump: time interval to write the free surface water depth to a .pvd file
+                :type t_dump: float
 
         """
 
