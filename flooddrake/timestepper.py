@@ -5,7 +5,7 @@ from flooddrake.slope_modification import SlopeModification
 from flooddrake.slope_limiter import SlopeLimiter
 from flooddrake.flux import Interior_Flux, Boundary_Flux
 from flooddrake.parameters import ModelParameters
-import numpy as np
+from flooddrake.min_dx import MinDx
 
 from firedrake import *
 
@@ -24,6 +24,7 @@ class Timestepper(object):
         self.source_term = source
         self.func = func
 
+        # initialize time attribute
         self.t = 0
 
         self.mesh = V.mesh()
@@ -32,10 +33,12 @@ class Timestepper(object):
         # define solver
         self.v = TestFunction(V)
 
-        n = np.power((CellVolume(self.mesh).ufl_domain().topology.num_cells()/2.0),
-                     1.0/CellVolume(self.mesh).ufl_domain().geometric_dimension())
+        # Compute global minimum of cell edge length
+        self.delta_x = MinDx(self.mesh)
 
-        self.dt = Constant(Courant / n)
+        self.dt = Courant * self.delta_x
+        self.initial_dt = Courant * self.delta_x
+        self.Dt = Constant(self.dt)
 
         self.V = V
 
@@ -159,7 +162,7 @@ class Timestepper(object):
 
         # solver - try to make this only once in the new version - by just assigning different values to all variable functions
         if self.mesh.geometric_dimension() == 2:
-            self.L = (dot(self.v, ((self.w_ - self.w) / self.dt)) * dx -
+            self.L = (dot(self.v, ((self.w_ - self.w) / self.Dt)) * dx -
                       dot(self.v.dx(0), self.F1) * dx -
                       dot(self.v.dx(1), self.F2) * dx +
                       (dot(self.v('-'), self.NegFlux) + dot(self.v('+'), self.PosFlux)) * dS +
@@ -169,7 +172,7 @@ class Timestepper(object):
                       dot(self.v('+'), self.delta_plus)) * dS)
 
         if self.mesh.geometric_dimension() == 1:
-            self.L = (dot(self.v, ((self.w_ - self.w) / self.dt)) * dx -
+            self.L = (dot(self.v, ((self.w_ - self.w) / self.Dt)) * dx -
                       dot(self.v.dx(0), self.F) * dx +
                       (dot(self.v('-'), self.NegFlux) + dot(self.v('+'), self.PosFlux)) * dS +
                       dot(self.v, self.BoundaryFlux) * ds +
@@ -183,7 +186,7 @@ class Timestepper(object):
                                                                     'sub_pc_type': 'bjacobi',
                                                                     'pc_type': 'ilu'})
 
-    def stepper(self, t_start, t_end, w):
+    def stepper(self, t_start, t_end, w, t_dump):
         """ Timesteps the shallow water equations from t_start to t_end using a 3rd order SSP Runge-Kutta scheme
 
                 :param t_start: start time
@@ -194,6 +197,9 @@ class Timestepper(object):
 
                 :param w: Current state vector function
 
+                :param t_dump: time interval to write the free surface water depth to a .pvd file
+                :type t_dump: float
+
         """
 
         self.w = w
@@ -203,12 +209,6 @@ class Timestepper(object):
 
         # used as the original state vector in each RK3 step
         self.w_old = Function(self.V).assign(self.w)
-
-        # raise timestep error
-        if (self.dt.dat.data > t_end):
-            raise ValueError('end time is less than one timestep or timestep is not factor of end time')
-
-        Nt = int(t_end / self.dt.dat.data)
 
         # initial slope modification
         self.__update_slope_modification()
@@ -225,9 +225,24 @@ class Timestepper(object):
         hout_file.write(hout)
         bout_file.write(bout)
 
-        self.t = 0
+        self.t = t_start
 
-        for i in range(Nt):
+        # start counter of how many time dumps
+        self.c = 1
+
+        while self.t < t_end:
+
+            # check if remaining time to next time dump is less than timestep
+            # correct if neeeded
+            if self.dt + self.t > self.c * t_dump:
+                self.dt = (self.c * t_dump) - self.t
+                self.Dt.assign(self.dt)
+
+            # check if remaining time to end time is less than timestep
+            # correct if needed
+            if (self.t <= (self.c + 1) * t_dump) and (self.dt + self.t > t_end):
+                self.dt = t_end - self.t
+                self.Dt.assign(self.dt)
 
             self.solver.solve()
 
@@ -254,12 +269,21 @@ class Timestepper(object):
 
             self.w_old.assign(self.w)
 
-            # timstep complete
+            # timstep complete - dump realisation if needed
+            self.t += self.dt
 
-            self.Project.project()
-            hout_file.write(hout)
-            bout_file.write(bout)
+            if self.t == self.c * t_dump:
+                self.Project.project()
+                hout_file.write(hout)
+                bout_file.write(bout)
 
-            self.t += self.dt.dat.data
+                self.c += 1
+
+                self.dt = self.initial_dt
+                self.Dt.assign(self.dt)
+
+        # return timestep
+        self.dt = self.initial_dt
+        self.Dt.assign(self.dt)
 
         return self.w
