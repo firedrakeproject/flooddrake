@@ -8,7 +8,7 @@ from firedrake import *
 from flooddrake import *
 
 
-def test_well_balanced():
+def test_balanced_under_source():
 
     n = 40
     mesh = UnitIntervalMesh(n)
@@ -25,35 +25,28 @@ def test_well_balanced():
 
     # setup free surface depth
     g = Function(V)
-    x = SpatialCoordinate(V.mesh())
-    g.sub(0).assign(0.4)
+    g.sub(0).assign(0.5)
 
     # setup bed
     bed = Function(V)
-    bed.sub(0).interpolate(conditional(x[0] > 0.75, 2 * (1-x[0]), 2 * abs(x[0]-0.5)))
 
     # setup actual depth
     w = g.assign(g - bed)
 
     # source term
-    source = Function(v_h)
-
-    w_start = Function(V).assign(w)
-    SM = SlopeModification(V)
-    ds = SM.Modification(w_start)
-    depth_start = Function(v_h).project(ds.sub(0))
+    source = Function(v_h).assign(0.05)
 
     # timestep
     t_end = 0.01
-    solution = Timestepper(V, VCG, bed, source, Courant=0.025)
+    solution = Timestepper(V, VCG, bed, source, Courant=0.125)
     w_end = solution.stepper(0, t_end, w, 0.025)
 
-    h_start, mu_start = split(w_start)
     h_end, mu_end = split(w_end)
 
     depth_end = Function(v_h).project(h_end)
 
-    depth_diff = np.max(np.abs(depth_start.dat.data - depth_end.dat.data))
+    # Check max and min depths difference is less than tolerance - balanced
+    depth_diff = np.max(depth_end.dat.data) - np.min(depth_end.dat.data)
 
     assert depth_diff <= 1e-4
 

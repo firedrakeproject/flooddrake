@@ -43,7 +43,7 @@ def test_conservation_mass_2d_flat_source():
     # timestep
     t_end = 0.01
     solution = Timestepper(V, VCG, bed, source, Courant=0.025)
-    w_end = solution.stepper(0, t_end, w)
+    w_end = solution.stepper(0, t_end, w, 0.025)
 
     h_start, mu_start, mv_start = split(w_start)
     h_end, mu_end, mv_end = split(w_end)
@@ -93,7 +93,7 @@ def test_conservation_mass_2d_unflat_source():
     # timestep
     t_end = 0.01
     solution = Timestepper(V, VCG, bed, source, Courant=0.025)
-    w_end = solution.stepper(0, t_end, w)
+    w_end = solution.stepper(0, t_end, w, 0.025)
 
     h_start, mu_start, mv_start = split(w_start)
     h_end, mu_end, mv_end = split(w_end)
