@@ -33,14 +33,14 @@ class SlopeModification(object):
             new_cell+=vert_cell[i][0];
         }
         new_cell=new_cell/vert_cell.dofs;
-        if (new_cell<=E){
+        if (new_cell<=0){
             for(int i=0;i<new_vert_cell.dofs;i++){
                 new_vert_cell[i][0]=0;
                 new_vert_u_cell[i][0]=0;
                 new_vert_v_cell[i][0]=0;
             }
         }
-        if (new_cell>E){
+        if (new_cell>0){
             float c=0;
             for(int i=0;i<new_vert_cell.dofs;i++){
                 if (vert_cell[i][0]>E){
@@ -58,16 +58,16 @@ class SlopeModification(object):
                     if (sqrt(pow((new_vert_u_cell[i][0]/new_vert_cell[i][0]),2)+pow((new_vert_v_cell[i][0]/new_vert_cell[i][0]),2))>UB){
                         d=new_vert_u_cell[i][0]/(new_vert_v_cell[i][0]+1e-6);
                         if (new_vert_u_cell[i][0]<0){
-                            new_vert_u_cell[i][0]=(-d)*sqrt(pow(UB,2)/(1+pow(d,2)))*new_vert_cell[i][0];
+                            new_vert_u_cell[i][0]=0;
                         }
                         if (new_vert_u_cell[i][0]>=0){
-                            new_vert_u_cell[i][0]=d*sqrt(pow(UB,2)/(1+pow(d,2)))*new_vert_cell[i][0];
+                            new_vert_u_cell[i][0]=0;
                         }
                         if (new_vert_v_cell[i][0]<0){
-                            new_vert_v_cell[i][0]=(-1)*sqrt(pow(UB,2)/(1+pow(d,2)))*new_vert_cell[i][0];
+                            new_vert_v_cell[i][0]=0;
                         }
                         if (new_vert_v_cell[i][0]>=0){
-                            new_vert_v_cell[i][0]=sqrt(pow(UB,2)/(1+pow(d,2)))*new_vert_cell[i][0];
+                            new_vert_v_cell[i][0]=0;
                         }
                     }
                 }
@@ -79,16 +79,16 @@ class SlopeModification(object):
                         if (sqrt(pow((new_vert_u_cell[i][0]/new_vert_cell[i][0]),2)+pow((new_vert_v_cell[i][0]/new_vert_cell[i][0]),2))>UB){
                             d=new_vert_u_cell[i][0]/(new_vert_v_cell[i][0]+1e-6);
                             if (new_vert_u_cell[i][0]<0){
-                                new_vert_u_cell[i][0]=(-d)*sqrt(pow(UB,2)/(1+pow(d,2)))*new_vert_cell[i][0];
+                                new_vert_u_cell[i][0]=0;
                             }
                             if (new_vert_u_cell[i][0]>=0){
-                                new_vert_u_cell[i][0]=d*sqrt(pow(UB,2)/(1+pow(d,2)))*new_vert_cell[i][0];
+                                new_vert_u_cell[i][0]=0;
                             }
                             if (new_vert_v_cell[i][0]<0){
-                                new_vert_v_cell[i][0]=(-1)*sqrt(pow(UB,2)/(1+pow(d,2)))*new_vert_cell[i][0];
+                                new_vert_v_cell[i][0]=0;
                             }
                             if (new_vert_v_cell[i][0]>=0){
-                                new_vert_v_cell[i][0]=sqrt(pow(UB,2)/(1+pow(d,2)))*new_vert_cell[i][0];
+                                new_vert_v_cell[i][0]=0;
                             }
                         }
                     }
@@ -108,16 +108,16 @@ class SlopeModification(object):
                         if (sqrt(pow((new_vert_u_cell[i][0]/new_vert_cell[i][0]),2)+pow((new_vert_v_cell[i][0]/new_vert_cell[i][0]),2))>UB){
                             d=new_vert_u_cell[i][0]/(new_vert_v_cell[i][0]+1e-6);
                             if (new_vert_u_cell[i][0]<0){
-                                new_vert_u_cell[i][0]=(-d)*sqrt(pow(UB,2)/(1+pow(d,2)))*new_vert_cell[i][0];
+                                new_vert_u_cell[i][0]=0;
                             }
                             if (new_vert_u_cell[i][0]>=0){
-                                new_vert_u_cell[i][0]=d*sqrt(pow(UB,2)/(1+pow(d,2)))*new_vert_cell[i][0];
+                                new_vert_u_cell[i][0]=0;
                             }
                             if (new_vert_v_cell[i][0]<0){
-                                new_vert_v_cell[i][0]=(-1)*sqrt(pow(UB,2)/(1+pow(d,2)))*new_vert_cell[i][0];
+                                new_vert_v_cell[i][0]=0;
                             }
                             if (new_vert_v_cell[i][0]>=0){
-                                new_vert_v_cell[i][0]=sqrt(pow(UB,2)/(1+pow(d,2)))*new_vert_cell[i][0];
+                                new_vert_v_cell[i][0]=0;
                             }
                         }
                     }

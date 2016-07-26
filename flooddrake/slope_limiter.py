@@ -27,15 +27,38 @@ class SlopeLimiter(object):
         # define the cg function to find maximum and minimum values for each vertex
         self.v_max_cg = Function(self.v_cg)
         self.v_min_cg = Function(self.v_cg)
+        self.vu_max_cg = Function(self.vu_cg)
+        self.vu_min_cg = Function(self.vu_cg)
+
+        if self.V.mesh().geometric_dimension() == 2:
+
+            self.vv_max_cg = Function(self.vv_cg)
+            self.vv_min_cg = Function(self.vv_cg)
 
         # define bed and free surface
         self.b_ = Function(self.v).project(self.b)
         self.H = Function(self.v)
+        self.MU = Function(self.vu)
+
+        if self.V.mesh().geometric_dimension() == 2:
+
+            self.MV = Function(self.vv)
 
         # cell average functions of depth and free surface
         self.c = Function(FunctionSpace(self.v.mesh(), 'DG', 0))
         self.v_func = Function(self.v)
+        self.vu_func = Function(self.vu)
+
+        if self.V.mesh().geometric_dimension() == 2:
+
+            self.vv_func = Function(self.vv)
+
         self.Project = Projector(self.v_func, self.c)
+        self.Projectu = Projector(self.vu_func, self.c)
+
+        if self.V.mesh().geometric_dimension() == 2:
+
+            self.Projectv = Projector(self.vv_func, self.c)
 
         # Kernel for searching for min and maxes of cell averages
         self.vert_max_min_kernel = """
@@ -68,7 +91,7 @@ class SlopeLimiter(object):
             }
         }
         for(int i=0;i<vert_cell_dg.dofs;i++){
-            vert_cell_dg[i][0]=cell_av[0][0] +(alpha*(vert_cell_dg[i][0]-cell_av[0][0]));
+            vert_cell_dg[i][0]=cell_av[0][0] +(MAX(0,alpha)*(vert_cell_dg[i][0]-cell_av[0][0]));
         }
         """
 
@@ -86,6 +109,7 @@ class SlopeLimiter(object):
 
         """
 
+        # Carry out limiting on the depth
         h = w.sub(0)
 
         self.H.assign(h)
@@ -111,5 +135,61 @@ class SlopeLimiter(object):
 
         # limited depth to state vector function
         w.sub(0).assign(self.v_func - self.b_)
+
+        # Carry out limiting on the second component
+        mu = w.sub(1)
+
+        self.MU.assign(mu)
+        self.vu_func.assign(self.MU)
+
+        self.Projectu.project()
+
+        self.vu_min_cg.assign(1000000)
+        self.vu_max_cg.assign(-1000000)
+
+        par_loop(self.vert_max_min_kernel, dx, {
+            "cell_av": (self.c, READ),
+            "vert_cell_min": (self.vu_min_cg, RW),
+            "vert_cell_max": (self.vu_max_cg, RW)
+        })
+
+        par_loop(self.slope_limiter_kernel, dx, {
+            "vert_cell_dg": (self.vu_func, RW),
+            "vert_cell_min": (self.vu_min_cg, READ),
+            "vert_cell_max": (self.vu_max_cg, READ),
+            "cell_av": (self.c, READ)
+        })
+
+        # limited depth to state vector function
+        w.sub(1).assign(self.vu_func)
+
+        if self.V.mesh().geometric_dimension() == 2:
+
+            # Carry out limiting on the third component
+            mv = w.sub(2)
+
+            self.MV.assign(mv)
+            self.vv_func.assign(self.MV)
+
+            self.Projectv.project()
+
+            self.vv_min_cg.assign(1000000)
+            self.vv_max_cg.assign(-1000000)
+
+            par_loop(self.vert_max_min_kernel, dx, {
+                "cell_av": (self.c, READ),
+                "vert_cell_min": (self.vv_min_cg, RW),
+                "vert_cell_max": (self.vv_max_cg, RW)
+            })
+
+            par_loop(self.slope_limiter_kernel, dx, {
+                "vert_cell_dg": (self.vv_func, RW),
+                "vert_cell_min": (self.vv_min_cg, READ),
+                "vert_cell_max": (self.vv_max_cg, READ),
+                "cell_av": (self.c, READ)
+            })
+
+            # limited depth to state vector function
+            w.sub(2).assign(self.vv_func)
 
         return w

@@ -7,7 +7,7 @@ from flooddrake import *
 
 # Meshsize
 n = 10
-mesh = UnitSquareMesh(n, n)
+mesh = SquareMesh(n, n, 10)
 
 # mixed function space
 v_h = FunctionSpace(mesh, "DG", 1)
@@ -24,7 +24,7 @@ VCG = v_hcg*v_mucg*v_mvcg
 # setup free surface depth
 g = Function(V)
 x = SpatialCoordinate(V.mesh())
-g.sub(0).interpolate(conditional(x[0] < 0.2, 3.0/9.8, 0.0))
+g.sub(0).interpolate(conditional(x[0] < 4, 1.0/9.8, 0.0))
 
 # setup bed
 bed = Function(V)
@@ -36,6 +36,6 @@ w = g.assign(g - bed)
 source = Function(v_h)
 
 # timestep
-solution = Timestepper(V, VCG, bed, source, 0.0125)
+solution = Timestepper(V, VCG, bed, source, 0.00625)
 
-solution.stepper(0, 2, w, 0.025)
+solution.stepper(0, 50, w, 0.025)

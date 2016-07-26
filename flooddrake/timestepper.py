@@ -248,6 +248,8 @@ class Timestepper(object):
 
             self.w.assign(self.w_)
 
+            # slope limiter
+            self.__update_slope_limiter()
             # slope modification
             self.__update_slope_modification()
 
@@ -255,6 +257,8 @@ class Timestepper(object):
 
             self.w.assign((3.0 / 4.0) * self.w_old + (1.0 / 4.0) * self.w_)
 
+            # slope limiter
+            self.__update_slope_limiter()
             # slope modification
             self.__update_slope_modification()
 
@@ -262,7 +266,7 @@ class Timestepper(object):
 
             self.w.assign((1.0 / 3.0) * self.w_old + (2.0 / 3.0) * self.w_)
 
-            # slope limiter for last RK step
+            # slope limiter
             self.__update_slope_limiter()
             # slope modification
             self.__update_slope_modification()
