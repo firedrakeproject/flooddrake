@@ -28,7 +28,7 @@ class SlopeModification(object):
         if self.V.mesh().geometric_dimension() == 1:
             self.new_v_func, self.new_v_u_func = split(self.nf)
 
-        self.slope_modification_2d_kernel = """ double new_cell = 0, d = 1.0; const E=1e-6, UB=1e0; int j;
+        self.slope_modification_2d_kernel = """ double new_cell = 0, d = 1.0; const double E=1e-6;  const double UB=1e0; int j;
         for(int i=0;i<vert_cell.dofs;i++){
             new_cell+=vert_cell[i][0];
         }
@@ -41,7 +41,7 @@ class SlopeModification(object):
             }
         }
         if (new_cell>0){
-            float c=0;
+            int c=0;
             for(int i=0;i<new_vert_cell.dofs;i++){
                 if (vert_cell[i][0]>E){
                     new_vert_cell[i][0]=vert_cell[i][0];
@@ -126,7 +126,7 @@ class SlopeModification(object):
         }
         """
 
-        self.slope_modification_1d_kernel = """ double new_cell = 0; const E=1e-6, UB=1e0; int j;
+        self.slope_modification_1d_kernel = """ double new_cell = 0; const double E=1e-6; const double UB=1e0; int j;
         for(int i=0;i<vert_cell.dofs;i++){
             new_cell+=vert_cell[i][0];
         }
@@ -138,7 +138,7 @@ class SlopeModification(object):
             }
         }
         if (new_cell>E){
-            float c=0;
+            int c=0;
             for(int i=0;i<new_vert_cell.dofs;i++){
                 if (vert_cell[i][0]>E){
                     new_vert_cell[i][0]=vert_cell[i][0];

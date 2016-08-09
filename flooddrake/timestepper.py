@@ -165,20 +165,20 @@ class Timestepper(object):
             self.L = (dot(self.v, ((self.w_ - self.w) / self.Dt)) * dx -
                       dot(self.v.dx(0), self.F1) * dx -
                       dot(self.v.dx(1), self.F2) * dx +
-                      (dot(self.v('-'), self.NegFlux) + dot(self.v('+'), self.PosFlux)) * dS +
-                      dot(self.v, self.BoundaryFlux) * ds +
+                      (dot(self.v('-'), self.NegFlux) + dot(self.v('+'), self.PosFlux)) * dS(degree=4) +
+                      dot(self.v, self.BoundaryFlux) * ds(degree=4) +
                       (dot(self.source, self.v)) * dx -
                       (dot(self.v('-'), self.delta_minus) +
-                      dot(self.v('+'), self.delta_plus)) * dS)
+                      dot(self.v('+'), self.delta_plus)) * dS(degree=4))
 
         if self.mesh.geometric_dimension() == 1:
             self.L = (dot(self.v, ((self.w_ - self.w) / self.Dt)) * dx -
                       dot(self.v.dx(0), self.F) * dx +
-                      (dot(self.v('-'), self.NegFlux) + dot(self.v('+'), self.PosFlux)) * dS +
-                      dot(self.v, self.BoundaryFlux) * ds +
+                      (dot(self.v('-'), self.NegFlux) + dot(self.v('+'), self.PosFlux)) * dS(degree=4) +
+                      dot(self.v, self.BoundaryFlux) * ds(degree=4) +
                       (dot(self.source, self.v)) * dx -
                       (dot(self.v('-'), self.delta_minus) +
-                      dot(self.v('+'), self.delta_plus)) * dS)
+                      dot(self.v('+'), self.delta_plus)) * dS(degree=4))
 
         self.problem = NonlinearVariationalProblem(self.L, self.w_, nest=False)
         self.solver = NonlinearVariationalSolver(self.problem,
