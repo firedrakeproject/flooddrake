@@ -28,7 +28,7 @@ class SlopeModification(object):
         if self.V.mesh().geometric_dimension() == 1:
             self.new_v_func, self.new_v_u_func = split(self.nf)
 
-        self.slope_modification_2d_kernel = """ double new_cell = 0, d = 1.0; const double E=1e-6;  const double UB=1e0; int j;
+        self.slope_modification_2d_kernel = """ double new_cell = 0; const double E=1e-6;  const double UB=1e0; int j;
         for(int i=0;i<vert_cell.dofs;i++){
             new_cell+=vert_cell[i][0];
         }
@@ -56,7 +56,6 @@ class SlopeModification(object):
             if (c==0){
                 for(int i=0;i<new_vert_cell.dofs;i++){
                     if (sqrt(pow((new_vert_u_cell[i][0]/new_vert_cell[i][0]),2)+pow((new_vert_v_cell[i][0]/new_vert_cell[i][0]),2))>UB){
-                        d=new_vert_u_cell[i][0]/(new_vert_v_cell[i][0]+1e-6);
                         if (new_vert_u_cell[i][0]<0){
                             new_vert_u_cell[i][0]=0;
                         }
@@ -77,7 +76,6 @@ class SlopeModification(object):
                     new_vert_cell[i][0]=(new_cell/(new_cell-vert_cell[j][0]))*(vert_cell[i][0]-vert_cell[j][0]);
                     if (new_vert_cell[i][0]>0){
                         if (sqrt(pow((new_vert_u_cell[i][0]/new_vert_cell[i][0]),2)+pow((new_vert_v_cell[i][0]/new_vert_cell[i][0]),2))>UB){
-                            d=new_vert_u_cell[i][0]/(new_vert_v_cell[i][0]+1e-6);
                             if (new_vert_u_cell[i][0]<0){
                                 new_vert_u_cell[i][0]=0;
                             }
@@ -106,7 +104,6 @@ class SlopeModification(object):
                     if (vert_cell[i][0]>E){
                         new_vert_cell[i][0]=new_cell*3;
                         if (sqrt(pow((new_vert_u_cell[i][0]/new_vert_cell[i][0]),2)+pow((new_vert_v_cell[i][0]/new_vert_cell[i][0]),2))>UB){
-                            d=new_vert_u_cell[i][0]/(new_vert_v_cell[i][0]+1e-6);
                             if (new_vert_u_cell[i][0]<0){
                                 new_vert_u_cell[i][0]=0;
                             }
@@ -131,13 +128,13 @@ class SlopeModification(object):
             new_cell+=vert_cell[i][0];
         }
         new_cell=new_cell/vert_cell.dofs;
-        if (new_cell<=E){
+        if (new_cell<=0){
             for(int i=0;i<new_vert_cell.dofs;i++){
                 new_vert_cell[i][0]=0;
                 new_vert_u_cell[i][0]=0;
             }
         }
-        if (new_cell>E){
+        if (new_cell>0){
             int c=0;
             for(int i=0;i<new_vert_cell.dofs;i++){
                 if (vert_cell[i][0]>E){
