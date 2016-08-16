@@ -2,8 +2,6 @@
 
 from flooddrake import *
 
-from mpi4py import MPI
-
 
 def MinDx(mesh):
     """ Finds the minimum cell edge length for each cell in a DG0 function

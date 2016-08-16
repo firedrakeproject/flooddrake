@@ -106,7 +106,7 @@ class AdaptiveTimestepping(object):
                                                          "cell_lengths": (self.min_lengths, READ)})
 
         cfl_timestep = self.c_w_s.comm.allreduce(self.c_w_s.dat.data_ro.min(),
-                                                                        MPI.MIN)
+                                                 MPI.MIN)
 
         delta_t = (1.0 / ((2.0 * self.p) + 1)) * cfl_timestep
 
