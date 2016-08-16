@@ -49,14 +49,13 @@ class AdaptiveTimestepping(object):
         """
 
         self.min_wave_speed_kernel_1d = """ const double g=9.8; float min=10000000, wave_speed=0; int a=0;
-        #define ABS(X) (((X) < 0) ? (-X) : (X))
         for(int i=0;i<vert_u_cell.dofs;i++){
             if (vert_cell[i][0]<=0){
                 wave_speed=10000000;
                 a=a+1;
             }
             if (vert_cell[i][0]>0){
-                wave_speed=ABS(vert_u_cell[i][0]/vert_cell[i][0])+sqrt(g*vert_cell[i][0]);
+                wave_speed=fabs(vert_u_cell[i][0]/vert_cell[i][0])+sqrt(g*vert_cell[i][0]);
             }
             min=fmin(wave_speed,min);
         }
