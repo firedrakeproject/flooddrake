@@ -34,7 +34,7 @@ class SlopeModification(object):
         bnd1 = 1e2
         bnd2 = 1e0
 
-        self.slope_modification_2d_kernel = """ double new_cell = 0; const double E=epsilon;  const double UB=ubnd; int j;
+        self.slope_modification_2d_kernel = """ double new_cell = 0; const double E=%(epsilon)s;  const double UB=%(ubnd)s; int j;
         for(int i=0;i<vert_cell.dofs;i++){
             new_cell+=vert_cell[i][0];
         }
@@ -129,7 +129,7 @@ class SlopeModification(object):
         }
         """
 
-        self.slope_modification_1d_kernel = """ double new_cell = 0; const double E=epsilon; const double UB=ubnd; int j;
+        self.slope_modification_1d_kernel = """ double new_cell = 0; const double E=%(epsilon)s; const double UB=%(ubnd)s; int j;
         for(int i=0;i<vert_cell.dofs;i++){
             new_cell+=vert_cell[i][0];
         }
@@ -197,14 +197,10 @@ class SlopeModification(object):
         """
 
         # replace parameter strings
-        self.slope_modification_1d_kernel = self.slope_modification_1d_kernel.replace('epsilon',
-                                                                                      str(eps1))
-        self.slope_modification_2d_kernel = self.slope_modification_2d_kernel.replace('epsilon',
-                                                                                      str(eps2))
-        self.slope_modification_1d_kernel = self.slope_modification_1d_kernel.replace('ubnd',
-                                                                                      str(bnd1))
-        self.slope_modification_2d_kernel = self.slope_modification_2d_kernel.replace('ubnd',
-                                                                                      str(bnd2))
+        self.slope_modification_1d_kernel = self.slope_modification_1d_kernel % {"epsilon": eps1,
+                                                                                 "ubnd": bnd1}
+        self.slope_modification_2d_kernel = self.slope_modification_2d_kernel % {"epsilon": eps2,
+                                                                                 "ubnd": bnd2}
 
         super(SlopeModification, self).__init__()
 
