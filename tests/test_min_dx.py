@@ -18,7 +18,7 @@ def test_min_cell_length_1d():
 
     actual_hyp = np.sqrt((Dx ** 2))
 
-    assert np.abs(min_cell_length - actual_hyp) < 1e-8
+    assert np.max(np.abs(min_cell_length.dat.data - actual_hyp)) < 1e-8
 
 
 def test_min_cell_length_2d():
@@ -31,7 +31,7 @@ def test_min_cell_length_2d():
 
     actual_hyp = np.sqrt((Dx ** 2))
 
-    assert np.abs(min_cell_length - actual_hyp) < 1e-8
+    assert np.max(np.abs(min_cell_length.dat.data - actual_hyp)) < 1e-8
 
 
 if __name__ == "__main__":

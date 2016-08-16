@@ -6,7 +6,7 @@ from firedrake import *
 from flooddrake import *
 
 # Meshsize
-n = 20
+n = 10
 mesh = UnitIntervalMesh(n)
 
 # mixed function space
@@ -29,7 +29,7 @@ w = g.assign(g - bed)
 
 # setup source (is only a depth function)
 # constant rain
-source = Function(v_h).assign(0.01)  # realisatic rainfall - 60 mm h^-1
+source = Function(v_h).assign(0.075)  # realisatic rainfall - 60 mm h^-1
 
 # timestep
 solution = Timestepper(V, bed, source, 0.025)

@@ -27,43 +27,44 @@ class AdaptiveTimestepping(object):
 
         self.c_w_s = Function(FunctionSpace(self.mesh, 'DG', 0))
 
-        self.max_cell_length = MinDx(self.V.mesh())
+        # find min cell edge lengths
+        self.min_lengths = MinDx(self.V.mesh())
 
-        self.min_wave_speed_kernel_2d = """ const double g=9.8; float min=10000000, wave_speed=0; int a=0;
+        self.max_wave_speed_kernel_2d = """ const double g=9.8; float max=-10000000, wave_speed=0; int a=0;
         for(int i=0;i<vert_u_cell.dofs;i++){
             if (vert_cell[i][0]<=0){
-                wave_speed=10000000;
+                wave_speed=-10000000;
                 a=a+1;
             }
             if (vert_cell[i][0]>0){
                 wave_speed=sqrt(pow((vert_u_cell[i][0]/vert_cell[i][0]),2)+pow((vert_v_cell[i][0]/vert_cell[i][0]),2))+sqrt(g*vert_cell[i][0]);
             }
-            min=fmin(wave_speed,min);
+            max=fmax(wave_speed,max);
         }
         if (a==vert_u_cell.dofs){
             cell_wave_speed[0][0]=10000000;
         }
         if (a<vert_u_cell.dofs){
-            cell_wave_speed[0][0]=1/min;
+            cell_wave_speed[0][0]=cell_lengths[0][0]/max;
         }
         """
 
-        self.min_wave_speed_kernel_1d = """ const double g=9.8; float min=10000000, wave_speed=0; int a=0;
+        self.max_wave_speed_kernel_1d = """ const double g=9.8; float max=-10000000, wave_speed=0; int a=0;
         for(int i=0;i<vert_u_cell.dofs;i++){
             if (vert_cell[i][0]<=0){
-                wave_speed=10000000;
+                wave_speed=-10000000;
                 a=a+1;
             }
             if (vert_cell[i][0]>0){
                 wave_speed=fabs(vert_u_cell[i][0]/vert_cell[i][0])+sqrt(g*vert_cell[i][0]);
             }
-            min=fmin(wave_speed,min);
+            max=fmax(wave_speed,max);
         }
         if (a==vert_u_cell.dofs){
             cell_wave_speed[0][0]=10000000;
         }
         if (a<vert_u_cell.dofs){
-            cell_wave_speed[0][0]=1/min;
+            cell_wave_speed[0][0]=cell_lengths[0][0]/max;
         }
         """
 
@@ -91,18 +92,20 @@ class AdaptiveTimestepping(object):
 
         if self.V.mesh().geometric_dimension() == 2:
 
-            par_loop(self.min_wave_speed_kernel_2d, dx, {"cell_wave_speed": (self.c_w_s, RW),
+            par_loop(self.max_wave_speed_kernel_2d, dx, {"cell_wave_speed": (self.c_w_s, RW),
                                                          "vert_cell": (h, READ),
                                                          "vert_u_cell": (mu, READ),
-                                                         "vert_v_cell": (mv, READ)})
+                                                         "vert_v_cell": (mv, READ),
+                                                         "cell_lengths": (self.min_lengths, READ)})
 
         if self.V.mesh().geometric_dimension() == 1:
 
-            par_loop(self.min_wave_speed_kernel_1d, dx, {"cell_wave_speed": (self.c_w_s, RW),
+            par_loop(self.max_wave_speed_kernel_1d, dx, {"cell_wave_speed": (self.c_w_s, RW),
                                                          "vert_cell": (h, READ),
-                                                         "vert_u_cell": (mu, READ)})
+                                                         "vert_u_cell": (mu, READ),
+                                                         "cell_lengths": (self.min_lengths, READ)})
 
-        cfl_timestep = self.max_cell_length * self.c_w_s.comm.allreduce(self.c_w_s.dat.data_ro.min(),
+        cfl_timestep = self.c_w_s.comm.allreduce(self.c_w_s.dat.data_ro.min(),
                                                                         MPI.MIN)
 
         delta_t = (1.0 / ((2.0 * self.p) + 1)) * cfl_timestep
