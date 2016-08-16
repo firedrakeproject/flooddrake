@@ -6,8 +6,8 @@ from firedrake import *
 from flooddrake import *
 
 # Meshsize
-n = 25
-mesh = UnitSquareMesh(n, n)
+n = 12
+mesh = SquareMesh(n, n, 50)
 
 # mixed function space
 v_h = FunctionSpace(mesh, "DG", 1)
@@ -15,21 +15,15 @@ v_mu = FunctionSpace(mesh, "DG", 1)
 v_mv = FunctionSpace(mesh, "DG", 1)
 V = v_h * v_mu * v_mv
 
-# for slope limiter
-v_hcg = FunctionSpace(mesh, "CG", 1)
-v_mucg = FunctionSpace(mesh, "CG", 1)
-v_mvcg = FunctionSpace(mesh, "CG", 1)
-VCG = v_hcg * v_mucg * v_mvcg
-
 # setup free surface depth
 g = Function(V)
 x = SpatialCoordinate(V.mesh())
 g.sub(0).interpolate(conditional(
-    pow(x[0] - 0.5, 2) + pow(x[1] - 0.5, 2) < 0.05, 0.75, 0.5))
+    pow(x[0] - 25, 2) + pow(x[1] - 25, 2) < 50, 0.6, 0.5))
 
 # setup bed
 bed = Function(V)
-bed.sub(0).interpolate(2 * (pow(x[0] - 0.5, 2) + pow(x[1] - 0.5, 2)))
+bed.sub(0).interpolate((4.0 / (50.0 ** 2)) * (pow(x[0] - 25, 2) + pow(x[1] - 25, 2)))
 
 # setup actual depth
 w = g.assign(g - bed)
@@ -38,6 +32,6 @@ w = g.assign(g - bed)
 source = Function(v_h)
 
 # timestep
-solution = Timestepper(V, VCG, bed, source, float(0.00625 / 4.0))
+solution = Timestepper(V, bed, source, 0.25)
 
-solution.stepper(0, 2, w, 0.025)
+solution.stepper(0, 75, w, 0.025)

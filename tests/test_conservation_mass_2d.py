@@ -19,12 +19,6 @@ def test_conservation_mass_2d_flat_source():
     v_mv = FunctionSpace(mesh, "DG", 1)
     V = v_h * v_mu * v_mv
 
-    # for slope limiter
-    v_hcg = FunctionSpace(mesh, "CG", 1)
-    v_mucg = FunctionSpace(mesh, "CG", 1)
-    v_mvcg = FunctionSpace(mesh, "CG", 1)
-    VCG = v_hcg * v_mucg * v_mvcg
-
     # setup free surface depth
     g = Function(V)
     g.sub(0).assign(0.8)
@@ -42,7 +36,7 @@ def test_conservation_mass_2d_flat_source():
 
     # timestep
     t_end = 0.01
-    solution = Timestepper(V, VCG, bed, source, Courant=0.025)
+    solution = Timestepper(V, bed, source, 0.025)
     w_end = solution.stepper(0, t_end, w, 0.025)
 
     h_start, mu_start, mv_start = split(w_start)
@@ -67,12 +61,6 @@ def test_conservation_mass_2d_unflat_source():
     v_mv = FunctionSpace(mesh, "DG", 1)
     V = v_h * v_mu * v_mv
 
-    # for slope limiter
-    v_hcg = FunctionSpace(mesh, "CG", 1)
-    v_mucg = FunctionSpace(mesh, "CG", 1)
-    v_mvcg = FunctionSpace(mesh, "CG", 1)
-    VCG = v_hcg * v_mucg * v_mvcg
-
     # setup free surface depth
     g = Function(V)
     x = SpatialCoordinate(V.mesh())
@@ -92,7 +80,7 @@ def test_conservation_mass_2d_unflat_source():
 
     # timestep
     t_end = 0.01
-    solution = Timestepper(V, VCG, bed, source, Courant=0.025)
+    solution = Timestepper(V, bed, source, 0.025)
     w_end = solution.stepper(0, t_end, w, 0.025)
 
     h_start, mu_start, mv_start = split(w_start)

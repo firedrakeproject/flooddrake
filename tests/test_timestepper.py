@@ -18,11 +18,6 @@ def test_timestepper_1():
     v_mu = FunctionSpace(mesh, "DG", 1)
     V = v_h * v_mu
 
-    # for slope limiter
-    v_hcg = FunctionSpace(mesh, "CG", 1)
-    v_mucg = FunctionSpace(mesh, "CG", 1)
-    VCG = v_hcg * v_mucg
-
     # setup free surface depth
     g = Function(V)
     g.sub(0).assign(0.4)
@@ -40,10 +35,8 @@ def test_timestepper_1():
     # timestep - make sure it the timestep won't be a factor of final time to
     # see the function deal with it
     t_end = 0.1
-    solution = Timestepper(V, VCG, bed, source, Courant=0.015)
+    solution = Timestepper(V, bed, source, 0.025)
     solution.stepper(0, t_end, w, 0.025)
-
-    assert np.abs(solution.dt - (0.015 / n)) < 1e-8
 
     assert solution.t == t_end
 
@@ -58,11 +51,6 @@ def test_timestepper_2():
     v_mu = FunctionSpace(mesh, "DG", 1)
     V = v_h * v_mu
 
-    # for slope limiter
-    v_hcg = FunctionSpace(mesh, "CG", 1)
-    v_mucg = FunctionSpace(mesh, "CG", 1)
-    VCG = v_hcg * v_mucg
-
     # setup free surface depth
     g = Function(V)
     g.sub(0).assign(0.4)
@@ -80,7 +68,7 @@ def test_timestepper_2():
     # timestep - make sure it the timestep won't be a factor of final time to
     # see the function deal with it
     t_end = 0.1
-    solution = Timestepper(V, VCG, bed, source, Courant=1)
+    solution = Timestepper(V, bed, source, 0.025)
     solution.stepper(0, t_end, w, 0.025)
 
     assert solution.t == t_end
@@ -98,11 +86,6 @@ def test_timestepper_3():
     v_mu = FunctionSpace(mesh, "DG", 1)
     V = v_h * v_mu
 
-    # for slope limiter
-    v_hcg = FunctionSpace(mesh, "CG", 1)
-    v_mucg = FunctionSpace(mesh, "CG", 1)
-    VCG = v_hcg * v_mucg
-
     # setup free surface depth
     g = Function(V)
     g.sub(0).assign(0.4)
@@ -120,7 +103,7 @@ def test_timestepper_3():
     # timestep - make sure it the timestep won't be a factor of final time to
     # see the function deal with it
     t_end = 0.1
-    solution = Timestepper(V, VCG, bed, source, Courant=1)
+    solution = Timestepper(V, bed, source, 0.025)
     solution.stepper(0, t_end, w, 0.015)
 
     assert solution.t == t_end
