@@ -4,7 +4,6 @@ from __future__ import absolute_import
 from flooddrake.slope_modification import SlopeModification
 from flooddrake.slope_limiter import SlopeLimiter
 from flooddrake.flux import Interior_Flux, Boundary_Flux
-from flooddrake.parameters import ModelParameters
 from flooddrake.min_dx import MinDx
 from flooddrake.adaptive_timestepping import AdaptiveTimestepping
 
@@ -49,7 +48,7 @@ class Timestepper(object):
             self.b_, _1 = split(self.b)
             self.v_h, self.v_mu = split(self.V)
 
-        self.gravity = ModelParameters().g
+        self.gravity = parameters["flooddrake"]["gravity"]
 
         self.SM = SlopeModification(self.V)
         self.SL = SlopeLimiter(self.b_, self.V)

@@ -29,10 +29,10 @@ class SlopeModification(object):
             self.new_v_func, self.new_v_u_func = split(self.nf)
 
         # to remove when user specifies params
-        eps1 = 1e-6
-        eps2 = 1e-12
-        bnd1 = 1e2
-        bnd2 = 1e0
+        eps1 = parameters["flooddrake"]["eps1"]
+        eps2 = parameters["flooddrake"]["eps2"]
+        bnd1 = parameters["flooddrake"]["ubnd1"]
+        bnd2 = parameters["flooddrake"]["ubnd2"]
 
         self.slope_modification_2d_kernel = """ double new_cell = 0; const double E=%(epsilon)s;  const double UB=%(ubnd)s; int j;
         for(int i=0;i<vert_cell.dofs;i++){

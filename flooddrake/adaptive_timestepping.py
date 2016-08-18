@@ -6,7 +6,6 @@ from __future__ import absolute_import
 from mpi4py import MPI
 
 from flooddrake import *
-from flooddrake.parameters import ModelParameters
 from flooddrake.min_dx import MinDx
 
 import numpy as np
@@ -23,14 +22,14 @@ class AdaptiveTimestepping(object):
         self.max_timestep = max_timestep
         self.p = self.V.ufl_element().degree()
 
-        self.gravity = ModelParameters().g
-
         self.c_w_s = Function(FunctionSpace(self.mesh, 'DG', 0))
 
         # find min cell edge lengths
         self.min_lengths = MinDx(self.V.mesh())
 
-        self.max_wave_speed_kernel_2d = """ const double g=9.8; float max=-10000000, wave_speed=0; int a=0;
+        g = parameters["flooddrake"]["gravity"]
+
+        self.max_wave_speed_kernel_2d = """ const double g=%(gravity)s; float max=-10000000, wave_speed=0; int a=0;
         for(int i=0;i<vert_u_cell.dofs;i++){
             if (vert_cell[i][0]<=0){
                 wave_speed=-10000000;
@@ -49,7 +48,7 @@ class AdaptiveTimestepping(object):
         }
         """
 
-        self.max_wave_speed_kernel_1d = """ const double g=9.8; float max=-10000000, wave_speed=0; int a=0;
+        self.max_wave_speed_kernel_1d = """ const double g=%(gravity)s; float max=-10000000, wave_speed=0; int a=0;
         for(int i=0;i<vert_u_cell.dofs;i++){
             if (vert_cell[i][0]<=0){
                 wave_speed=-10000000;
@@ -67,6 +66,10 @@ class AdaptiveTimestepping(object):
             cell_wave_speed[0][0]=cell_lengths[0][0]/max;
         }
         """
+
+        # replace parameter strings
+        self.max_wave_speed_kernel_1d = self.max_wave_speed_kernel_1d % {"gravity": g}
+        self.max_wave_speed_kernel_2d = self.max_wave_speed_kernel_2d % {"gravity": g}
 
         super(AdaptiveTimestepping, self).__init__()
 
