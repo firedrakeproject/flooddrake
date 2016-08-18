@@ -19,12 +19,6 @@ def test_slope_limiter():
     v_mv = FunctionSpace(mesh, "DG", 1)
     V = v_h * v_mu * v_mv
 
-    # for slope limiter
-    v_hcg = FunctionSpace(mesh, "CG", 1)
-    v_mucg = FunctionSpace(mesh, "CG", 1)
-    v_mvcg = FunctionSpace(mesh, "CG", 1)
-    VCG = v_hcg * v_mucg * v_mvcg
-
     # setup initial condition
     w = Function(V)
     w.sub(0).assign(1)
@@ -40,7 +34,7 @@ def test_slope_limiter():
     b_, b1, b2 = split(b)
 
     # slope limiting
-    SL = SlopeLimiter(b_, V, VCG)
+    SL = SlopeLimiter(b_, V)
     W = SL.Limiter(w)
 
     # check that it's invariant as all cell averages are same.
@@ -57,12 +51,6 @@ def test_slope_limiter_mean_preserving():
     v_mu = FunctionSpace(mesh, "DG", 1)
     v_mv = FunctionSpace(mesh, "DG", 1)
     V = v_h * v_mu * v_mv
-
-    # for slope limiter
-    v_hcg = FunctionSpace(mesh, "CG", 1)
-    v_mucg = FunctionSpace(mesh, "CG", 1)
-    v_mvcg = FunctionSpace(mesh, "CG", 1)
-    VCG = v_hcg * v_mucg * v_mvcg
 
     # mixed functionspace
     v_hav = FunctionSpace(mesh, "DG", 0)
@@ -85,7 +73,7 @@ def test_slope_limiter_mean_preserving():
     b_, b1, b2 = split(b)
 
     # slope limiting
-    SL = SlopeLimiter(b_, V, VCG)
+    SL = SlopeLimiter(b_, V)
     W = SL.Limiter(w)
 
     new_cell_av = Function(VAV).project(W)

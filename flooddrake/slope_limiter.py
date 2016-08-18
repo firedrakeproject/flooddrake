@@ -6,10 +6,9 @@ from firedrake import *
 
 class SlopeLimiter(object):
 
-    def __init__(self, b, V, VCG):
+    def __init__(self, b, V):
 
         self.V = V
-        self.VCG = VCG
         self.b = b
 
         if self.V.mesh().geometric_dimension() == 2:

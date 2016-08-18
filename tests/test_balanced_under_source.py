@@ -18,11 +18,6 @@ def test_balanced_under_source():
     v_mu = FunctionSpace(mesh, "DG", 1)
     V = v_h * v_mu
 
-    # for slope limiter
-    v_hcg = FunctionSpace(mesh, "CG", 1)
-    v_mucg = FunctionSpace(mesh, "CG", 1)
-    VCG = v_hcg * v_mucg
-
     # setup free surface depth
     g = Function(V)
     g.sub(0).assign(0.5)
@@ -38,7 +33,7 @@ def test_balanced_under_source():
 
     # timestep
     t_end = 0.01
-    solution = Timestepper(V, VCG, bed, source, Courant=0.125)
+    solution = Timestepper(V, bed, source, 0.025)
     w_end = solution.stepper(0, t_end, w, 0.025)
 
     h_end, mu_end = split(w_end)

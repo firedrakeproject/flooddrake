@@ -28,7 +28,13 @@ class SlopeModification(object):
         if self.V.mesh().geometric_dimension() == 1:
             self.new_v_func, self.new_v_u_func = split(self.nf)
 
-        self.slope_modification_2d_kernel = """ double new_cell = 0; const double E=1e-6;  const double UB=1e0; int j;
+        # to remove when user specifies params
+        eps1 = 1e-6
+        eps2 = 1e-12
+        bnd1 = 1e2
+        bnd2 = 1e0
+
+        self.slope_modification_2d_kernel = """ double new_cell = 0; const double E=%(epsilon)s;  const double UB=%(ubnd)s; int j;
         for(int i=0;i<vert_cell.dofs;i++){
             new_cell+=vert_cell[i][0];
         }
@@ -102,7 +108,7 @@ class SlopeModification(object):
                         new_vert_v_cell[i][0]=0;
                     }
                     if (vert_cell[i][0]>E){
-                        new_vert_cell[i][0]=new_cell*3;
+                        new_vert_cell[i][0]=new_cell*vert_cell.dofs;
                         if (sqrt(pow((new_vert_u_cell[i][0]/new_vert_cell[i][0]),2)+pow((new_vert_v_cell[i][0]/new_vert_cell[i][0]),2))>UB){
                             if (new_vert_u_cell[i][0]<0){
                                 new_vert_u_cell[i][0]=0;
@@ -123,7 +129,7 @@ class SlopeModification(object):
         }
         """
 
-        self.slope_modification_1d_kernel = """ double new_cell = 0; const double E=1e-6; const double UB=1e0; int j;
+        self.slope_modification_1d_kernel = """ double new_cell = 0; const double E=%(epsilon)s; const double UB=%(ubnd)s; int j;
         for(int i=0;i<vert_cell.dofs;i++){
             new_cell+=vert_cell[i][0];
         }
@@ -149,10 +155,10 @@ class SlopeModification(object):
             if (c==0){
                 for(int i=0;i<new_vert_cell.dofs;i++){
                     if (new_vert_u_cell[i][0]/new_vert_cell[i][0]>UB){
-                        new_vert_u_cell[i][0]=UB*new_vert_cell[i][0];
+                        new_vert_u_cell[i][0]=0;
                     }
                     if ((new_vert_u_cell[i][0]/new_vert_cell[i][0])<-UB){
-                        new_vert_u_cell[i][0]=(-UB)*new_vert_cell[i][0];
+                        new_vert_u_cell[i][0]=0;
                     }
                 }
             }
@@ -161,10 +167,10 @@ class SlopeModification(object):
                     new_vert_cell[i][0]=(new_cell/(new_cell-vert_cell[j][0]))*(vert_cell[i][0]-vert_cell[j][0]);
                     if (new_vert_cell[i][0]>0){
                         if (new_vert_u_cell[i][0]/new_vert_cell[i][0]>UB){
-                            new_vert_u_cell[i][0]=UB*new_vert_cell[i][0];
+                            new_vert_u_cell[i][0]=0;
                         }
                         if ((new_vert_u_cell[i][0]/new_vert_cell[i][0])<-UB){
-                            new_vert_u_cell[i][0]=(-UB)*new_vert_cell[i][0];
+                            new_vert_u_cell[i][0]=0;
                         }
                     }
                 }
@@ -177,18 +183,24 @@ class SlopeModification(object):
                         new_vert_u_cell[i][0]=0;
                     }
                     if (vert_cell[i][0]>E){
-                        new_vert_cell[i][0]=new_cell*3;
+                        new_vert_cell[i][0]=new_cell*vert_cell.dofs;
                         if (new_vert_u_cell[i][0]/new_vert_cell[i][0]>UB){
-                            new_vert_u_cell[i][0]=UB*new_vert_cell[i][0];
+                            new_vert_u_cell[i][0]=0;
                         }
                         if ((new_vert_u_cell[i][0]/new_vert_cell[i][0])<-UB){
-                            new_vert_u_cell[i][0]=(-UB)*new_vert_cell[i][0];
+                            new_vert_u_cell[i][0]=0;
                         }
                     }
                 }
             }
         }
         """
+
+        # replace parameter strings
+        self.slope_modification_1d_kernel = self.slope_modification_1d_kernel % {"epsilon": eps1,
+                                                                                 "ubnd": bnd1}
+        self.slope_modification_2d_kernel = self.slope_modification_2d_kernel % {"epsilon": eps2,
+                                                                                 "ubnd": bnd2}
 
         super(SlopeModification, self).__init__()
 

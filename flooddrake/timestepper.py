@@ -6,17 +6,14 @@ from flooddrake.slope_limiter import SlopeLimiter
 from flooddrake.flux import Interior_Flux, Boundary_Flux
 from flooddrake.parameters import ModelParameters
 from flooddrake.min_dx import MinDx
+from flooddrake.adaptive_timestepping import AdaptiveTimestepping
 
 from firedrake import *
-
-# should really change this child object to the flux, or solver functions,
-# but for now just change to new type of class. When changing, change the
-# object in class header and the super command.
 
 
 class Timestepper(object):
 
-    def __init__(self, V, VCG, bed, source, Courant=0.025, func=lambda x: 1):
+    def __init__(self, V, bed, source, MaxTimestep=0.025, func=lambda x: 1):
 
         self.b = bed
 
@@ -28,7 +25,6 @@ class Timestepper(object):
         self.t = 0
 
         self.mesh = V.mesh()
-        self.VCG = VCG
 
         # define solver
         self.v = TestFunction(V)
@@ -36,8 +32,9 @@ class Timestepper(object):
         # Compute global minimum of cell edge length
         self.delta_x = MinDx(self.mesh)
 
-        self.dt = Courant * self.delta_x
-        self.initial_dt = Courant * self.delta_x
+        self.AT = AdaptiveTimestepping(V, MaxTimestep)
+        self.dt = MaxTimestep
+        self.initial_dt = MaxTimestep
         self.Dt = Constant(self.dt)
 
         self.V = V
@@ -55,7 +52,7 @@ class Timestepper(object):
         self.gravity = ModelParameters().g
 
         self.SM = SlopeModification(self.V)
-        self.SL = SlopeLimiter(self.b_, self.V, self.VCG)
+        self.SL = SlopeLimiter(self.b_, self.V)
 
         super(Timestepper, self).__init__()
 
@@ -78,7 +75,7 @@ class Timestepper(object):
 
         """
 
-        self.w_ = Function(self.V)
+        self.W = TrialFunction(self.V)
 
         if self.mesh.geometric_dimension() == 1:
 
@@ -162,29 +159,35 @@ class Timestepper(object):
 
         # solver - try to make this only once in the new version - by just assigning different values to all variable functions
         if self.mesh.geometric_dimension() == 2:
-            self.L = (dot(self.v, ((self.w_ - self.w) / self.Dt)) * dx -
-                      dot(self.v.dx(0), self.F1) * dx -
-                      dot(self.v.dx(1), self.F2) * dx +
-                      (dot(self.v('-'), self.NegFlux) + dot(self.v('+'), self.PosFlux)) * dS +
-                      dot(self.v, self.BoundaryFlux) * ds +
-                      (dot(self.source, self.v)) * dx -
-                      (dot(self.v('-'), self.delta_minus) +
-                      dot(self.v('+'), self.delta_plus)) * dS)
+            self.L = - dot(self.v, self.W) * dx
+            self.a = (- dot(self.v, self.w) * dx +
+                      self.Dt * (- dot(self.v.dx(0), self.F1) * dx -
+                                 dot(self.v.dx(1), self.F2) * dx +
+                                 (dot(self.v('-'), self.NegFlux) +
+                                  dot(self.v('+'), self.PosFlux)) * dS +
+                                 dot(self.v, self.BoundaryFlux) * ds +
+                                 (dot(self.source, self.v)) * dx -
+                                 (dot(self.v('-'), self.delta_minus) +
+                                  dot(self.v('+'), self.delta_plus)) * dS))
 
         if self.mesh.geometric_dimension() == 1:
-            self.L = (dot(self.v, ((self.w_ - self.w) / self.Dt)) * dx -
-                      dot(self.v.dx(0), self.F) * dx +
-                      (dot(self.v('-'), self.NegFlux) + dot(self.v('+'), self.PosFlux)) * dS +
-                      dot(self.v, self.BoundaryFlux) * ds +
-                      (dot(self.source, self.v)) * dx -
-                      (dot(self.v('-'), self.delta_minus) +
-                      dot(self.v('+'), self.delta_plus)) * dS)
+            self.L = - dot(self.v, self.W) * dx
+            self.a = (- dot(self.v, self.w) * dx +
+                      self.Dt * (- dot(self.v.dx(0), self.F) * dx +
+                                 (dot(self.v('-'), self.NegFlux) +
+                                  dot(self.v('+'), self.PosFlux)) * dS +
+                                 dot(self.v, self.BoundaryFlux) * ds +
+                                 (dot(self.source, self.v)) * dx -
+                                 (dot(self.v('-'), self.delta_minus) +
+                                  dot(self.v('+'), self.delta_plus)) * dS))
 
-        self.problem = NonlinearVariationalProblem(self.L, self.w_, nest=False)
-        self.solver = NonlinearVariationalSolver(self.problem,
-                                                 solver_parameters={'ksp_type': 'cg',
-                                                                    'sub_pc_type': 'bjacobi',
-                                                                    'pc_type': 'ilu'})
+        self.w_ = Function(self.V)
+
+        self.problem = LinearVariationalProblem(self.L, self.a, self.w_, nest=False)
+        self.solver = LinearVariationalSolver(self.problem,
+                                              solver_parameters={'ksp_type': 'preonly',
+                                                                 'sub_pc_type': 'ilu',
+                                                                 'pc_type': 'bjacobi'})
 
     def stepper(self, t_start, t_end, w, t_dump):
         """ Timesteps the shallow water equations from t_start to t_end using a 3rd order SSP Runge-Kutta scheme
@@ -231,6 +234,10 @@ class Timestepper(object):
         self.c = 1
 
         while self.t < t_end:
+
+            # find new timestep
+            self.dt = self.AT.FindTimestep(self.w)
+            self.Dt.assign(self.dt)
 
             # check if remaining time to next time dump is less than timestep
             # correct if neeeded

@@ -6,7 +6,7 @@ from firedrake import *
 from flooddrake import *
 
 # Meshsize
-n = 20
+n = 10
 mesh = UnitIntervalMesh(n)
 
 # mixed function space
@@ -14,15 +14,10 @@ v_h = FunctionSpace(mesh, "DG", 1)
 v_mu = FunctionSpace(mesh, "DG", 1)
 V = v_h * v_mu
 
-# for slope limiter
-v_hcg = FunctionSpace(mesh, "CG", 1)
-v_mucg = FunctionSpace(mesh, "CG", 1)
-VCG = v_hcg * v_mucg
-
 # setup free surface depth
 g = Function(V)
 x = SpatialCoordinate(V.mesh())
-g.sub(0).assign(0.4)
+g.sub(0).assign(0.0)
 
 # setup bed
 bed = Function(V)
@@ -34,9 +29,9 @@ w = g.assign(g - bed)
 
 # setup source (is only a depth function)
 # constant rain
-source = Function(v_h).assign(0.005)  # realisatic rainfall - 60 mm h^-1
+source = Function(v_h).assign(0.075)  # realisatic rainfall - 60 mm h^-1
 
 # timestep
-solution = Timestepper(V, VCG, bed, source, 0.025)
+solution = Timestepper(V, bed, source, 0.025)
 
-solution.stepper(0, 10, w, 0.025)
+solution.stepper(0, 10, w, 0.1)
