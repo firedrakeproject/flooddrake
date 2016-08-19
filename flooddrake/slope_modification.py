@@ -62,18 +62,8 @@ class SlopeModification(object):
             if (c==0){
                 for(int i=0;i<new_vert_cell.dofs;i++){
                     if (sqrt(pow((new_vert_u_cell[i][0]/new_vert_cell[i][0]),2)+pow((new_vert_v_cell[i][0]/new_vert_cell[i][0]),2))>UB){
-                        if (new_vert_u_cell[i][0]<0){
-                            new_vert_u_cell[i][0]=0;
-                        }
-                        if (new_vert_u_cell[i][0]>=0){
-                            new_vert_u_cell[i][0]=0;
-                        }
-                        if (new_vert_v_cell[i][0]<0){
-                            new_vert_v_cell[i][0]=0;
-                        }
-                        if (new_vert_v_cell[i][0]>=0){
-                            new_vert_v_cell[i][0]=0;
-                        }
+                        new_vert_u_cell[i][0]=0;
+                        new_vert_v_cell[i][0]=0;
                     }
                 }
             }
@@ -82,18 +72,8 @@ class SlopeModification(object):
                     new_vert_cell[i][0]=(new_cell/(new_cell-vert_cell[j][0]))*(vert_cell[i][0]-vert_cell[j][0]);
                     if (new_vert_cell[i][0]>0){
                         if (sqrt(pow((new_vert_u_cell[i][0]/new_vert_cell[i][0]),2)+pow((new_vert_v_cell[i][0]/new_vert_cell[i][0]),2))>UB){
-                            if (new_vert_u_cell[i][0]<0){
-                                new_vert_u_cell[i][0]=0;
-                            }
-                            if (new_vert_u_cell[i][0]>=0){
-                                new_vert_u_cell[i][0]=0;
-                            }
-                            if (new_vert_v_cell[i][0]<0){
-                                new_vert_v_cell[i][0]=0;
-                            }
-                            if (new_vert_v_cell[i][0]>=0){
-                                new_vert_v_cell[i][0]=0;
-                            }
+                            new_vert_u_cell[i][0]=0;
+                            new_vert_v_cell[i][0]=0;
                         }
                     }
                 }
@@ -110,18 +90,8 @@ class SlopeModification(object):
                     if (vert_cell[i][0]>E){
                         new_vert_cell[i][0]=new_cell*vert_cell.dofs;
                         if (sqrt(pow((new_vert_u_cell[i][0]/new_vert_cell[i][0]),2)+pow((new_vert_v_cell[i][0]/new_vert_cell[i][0]),2))>UB){
-                            if (new_vert_u_cell[i][0]<0){
-                                new_vert_u_cell[i][0]=0;
-                            }
-                            if (new_vert_u_cell[i][0]>=0){
-                                new_vert_u_cell[i][0]=0;
-                            }
-                            if (new_vert_v_cell[i][0]<0){
-                                new_vert_v_cell[i][0]=0;
-                            }
-                            if (new_vert_v_cell[i][0]>=0){
-                                new_vert_v_cell[i][0]=0;
-                            }
+                            new_vert_u_cell[i][0]=0;
+                            new_vert_v_cell[i][0]=0;
                         }
                     }
                 }
