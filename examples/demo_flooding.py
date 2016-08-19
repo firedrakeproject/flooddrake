@@ -29,7 +29,11 @@ w = g.assign(g - bed)
 # setup source (is only a depth function)
 source = Function(v_h)
 
+# parameters
+parameters["flooddrake"].update({"eps2": 1e-6,
+                                 "ubnd2": 7.5e0})
+
 # timestep
 solution = Timestepper(V, bed, source, 0.025)
 
-solution.stepper(0, 7.5, w, 0.1)
+solution.stepper(0, 5, w, 0.1)

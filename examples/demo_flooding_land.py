@@ -35,6 +35,10 @@ bedFile.write(bed.sub(0))
 # setup source (is only a depth function)
 source = Function(v_h).assign(0.075)
 
+# parameters
+parameters["flooddrake"].update({"eps2": 1e-12,
+                                 "ubnd2": 1e0})
+
 # timestep
 solution = Timestepper(V, bed, source, 0.025)
 
