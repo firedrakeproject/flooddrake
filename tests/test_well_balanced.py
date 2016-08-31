@@ -39,7 +39,7 @@ def test_well_balanced():
     depth_start = Function(v_h).project(ds.sub(0))
 
     # timestep
-    t_end = 0.01
+    t_end = 0.5
     solution = Timestepper(V, bed, source, 0.025)
     w_end = solution.stepper(0, t_end, w, 0.025)
 
