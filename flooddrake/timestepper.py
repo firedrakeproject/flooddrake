@@ -182,11 +182,12 @@ class Timestepper(object):
 
         self.w_ = Function(self.V)
 
-        self.problem = LinearVariationalProblem(self.L, self.a, self.w_, nest=False)
+        self.problem = LinearVariationalProblem(self.L, self.a, self.w_)
         self.solver = LinearVariationalSolver(self.problem,
                                               solver_parameters={'ksp_type': 'preonly',
                                                                  'sub_pc_type': 'ilu',
-                                                                 'pc_type': 'bjacobi'})
+                                                                 'pc_type': 'bjacobi',
+                                                                 'mat_type': 'aij'})
 
     def stepper(self, t_start, t_end, w, t_dump):
         """ Timesteps the shallow water equations from t_start to t_end using a 3rd order SSP Runge-Kutta scheme
