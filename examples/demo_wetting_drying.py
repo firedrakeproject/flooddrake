@@ -31,8 +31,8 @@ w = g.assign(g - bed)
 source = Function(v_h)
 
 # parameters
-parameters["flooddrake"].update({"eps2": 1e-12,
-                                 "ubnd2": 1e0,
+parameters["flooddrake"].update({"eps2": 1e-11,
+                                 "ubnd2": 1.25e0,
                                  "lbnd2": 1e0})
 
 # timestep
