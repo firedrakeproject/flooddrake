@@ -6,7 +6,7 @@ from firedrake import *
 from flooddrake import *
 
 # Meshsize
-n = 20
+n = 40
 mesh = SquareMesh(n, n, 50)
 
 # mixed function space
@@ -29,7 +29,12 @@ w = g.assign(g - bed)
 # setup source (is only a depth function)
 source = Function(v_h)
 
-# timestep
-solution = Timestepper(V, bed, source, 0.025)
+# parameters
+parameters["flooddrake"].update({"eps2": 1e-6,
+                                 "ubnd2": 4e1,
+                                 "lbnd2": 1e0})
 
-solution.stepper(0, 7.5, w, 0.1)
+# timestep
+solution = Timestepper(V, bed, source, 0.1)
+
+solution.stepper(0, 5, w, 0.5)

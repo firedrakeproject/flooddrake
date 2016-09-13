@@ -1,8 +1,6 @@
 from __future__ import division
 from __future__ import absolute_import
 
-from flooddrake.parameters import ModelParameters
-
 from firedrake import *
 
 
@@ -19,7 +17,7 @@ def Interior_Flux(N, V, wr, wl):
 
     d = V.mesh().geometric_dimension()
 
-    gravity = ModelParameters().g
+    gravity = parameters["flooddrake"]["gravity"]
 
     # two different fluxes depending on dimension
     if d == 1:
@@ -152,7 +150,7 @@ def Boundary_Flux(V, w):
 
     d = V.mesh().geometric_dimension()
 
-    gravity = ModelParameters().g
+    gravity = parameters["flooddrake"]["gravity"]
 
     N = FacetNormal(V.mesh())
 

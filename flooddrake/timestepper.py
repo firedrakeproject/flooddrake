@@ -4,7 +4,6 @@ from __future__ import absolute_import
 from flooddrake.slope_modification import SlopeModification
 from flooddrake.slope_limiter import SlopeLimiter
 from flooddrake.flux import Interior_Flux, Boundary_Flux
-from flooddrake.parameters import ModelParameters
 from flooddrake.min_dx import MinDx
 from flooddrake.adaptive_timestepping import AdaptiveTimestepping
 
@@ -49,7 +48,7 @@ class Timestepper(object):
             self.b_, _1 = split(self.b)
             self.v_h, self.v_mu = split(self.V)
 
-        self.gravity = ModelParameters().g
+        self.gravity = parameters["flooddrake"]["gravity"]
 
         self.SM = SlopeModification(self.V)
         self.SL = SlopeLimiter(self.b_, self.V)
@@ -183,11 +182,12 @@ class Timestepper(object):
 
         self.w_ = Function(self.V)
 
-        self.problem = LinearVariationalProblem(self.L, self.a, self.w_, nest=False)
+        self.problem = LinearVariationalProblem(self.L, self.a, self.w_)
         self.solver = LinearVariationalSolver(self.problem,
                                               solver_parameters={'ksp_type': 'preonly',
                                                                  'sub_pc_type': 'ilu',
-                                                                 'pc_type': 'bjacobi'})
+                                                                 'pc_type': 'bjacobi',
+                                                                 'mat_type': 'aij'})
 
     def stepper(self, t_start, t_end, w, t_dump):
         """ Timesteps the shallow water equations from t_start to t_end using a 3rd order SSP Runge-Kutta scheme

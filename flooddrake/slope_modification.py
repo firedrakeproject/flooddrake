@@ -29,12 +29,14 @@ class SlopeModification(object):
             self.new_v_func, self.new_v_u_func = split(self.nf)
 
         # to remove when user specifies params
-        eps1 = 1e-6
-        eps2 = 1e-12
-        bnd1 = 1e2
-        bnd2 = 1e0
+        eps1 = parameters["flooddrake"]["eps1"]
+        eps2 = parameters["flooddrake"]["eps2"]
+        bnd1 = parameters["flooddrake"]["ubnd1"]
+        bnd2 = parameters["flooddrake"]["ubnd2"]
+        lbnd1 = parameters["flooddrake"]["lbnd1"]
+        lbnd2 = parameters["flooddrake"]["lbnd2"]
 
-        self.slope_modification_2d_kernel = """ double new_cell = 0; const double E=%(epsilon)s;  const double UB=%(ubnd)s; int j;
+        self.slope_modification_2d_kernel = """ double new_cell = 0; const double E=%(epsilon)s;  const double UB=%(ubnd)s, LB=%(lbnd)s; int j;
         for(int i=0;i<vert_cell.dofs;i++){
             new_cell+=vert_cell[i][0];
         }
@@ -62,16 +64,8 @@ class SlopeModification(object):
             if (c==0){
                 for(int i=0;i<new_vert_cell.dofs;i++){
                     if (sqrt(pow((new_vert_u_cell[i][0]/new_vert_cell[i][0]),2)+pow((new_vert_v_cell[i][0]/new_vert_cell[i][0]),2))>UB){
-                        if (new_vert_u_cell[i][0]<0){
+                        if (new_vert_cell[i][0] <= LB){
                             new_vert_u_cell[i][0]=0;
-                        }
-                        if (new_vert_u_cell[i][0]>=0){
-                            new_vert_u_cell[i][0]=0;
-                        }
-                        if (new_vert_v_cell[i][0]<0){
-                            new_vert_v_cell[i][0]=0;
-                        }
-                        if (new_vert_v_cell[i][0]>=0){
                             new_vert_v_cell[i][0]=0;
                         }
                     }
@@ -82,16 +76,8 @@ class SlopeModification(object):
                     new_vert_cell[i][0]=(new_cell/(new_cell-vert_cell[j][0]))*(vert_cell[i][0]-vert_cell[j][0]);
                     if (new_vert_cell[i][0]>0){
                         if (sqrt(pow((new_vert_u_cell[i][0]/new_vert_cell[i][0]),2)+pow((new_vert_v_cell[i][0]/new_vert_cell[i][0]),2))>UB){
-                            if (new_vert_u_cell[i][0]<0){
+                            if (new_vert_cell[i][0] <= LB){
                                 new_vert_u_cell[i][0]=0;
-                            }
-                            if (new_vert_u_cell[i][0]>=0){
-                                new_vert_u_cell[i][0]=0;
-                            }
-                            if (new_vert_v_cell[i][0]<0){
-                                new_vert_v_cell[i][0]=0;
-                            }
-                            if (new_vert_v_cell[i][0]>=0){
                                 new_vert_v_cell[i][0]=0;
                             }
                         }
@@ -110,16 +96,8 @@ class SlopeModification(object):
                     if (vert_cell[i][0]>E){
                         new_vert_cell[i][0]=new_cell*vert_cell.dofs;
                         if (sqrt(pow((new_vert_u_cell[i][0]/new_vert_cell[i][0]),2)+pow((new_vert_v_cell[i][0]/new_vert_cell[i][0]),2))>UB){
-                            if (new_vert_u_cell[i][0]<0){
+                            if (new_vert_cell[i][0] <= LB){
                                 new_vert_u_cell[i][0]=0;
-                            }
-                            if (new_vert_u_cell[i][0]>=0){
-                                new_vert_u_cell[i][0]=0;
-                            }
-                            if (new_vert_v_cell[i][0]<0){
-                                new_vert_v_cell[i][0]=0;
-                            }
-                            if (new_vert_v_cell[i][0]>=0){
                                 new_vert_v_cell[i][0]=0;
                             }
                         }
@@ -129,7 +107,7 @@ class SlopeModification(object):
         }
         """
 
-        self.slope_modification_1d_kernel = """ double new_cell = 0; const double E=%(epsilon)s; const double UB=%(ubnd)s; int j;
+        self.slope_modification_1d_kernel = """ double new_cell = 0; const double E=%(epsilon)s; const double UB=%(ubnd)s, LB=%(lbnd)s; int j;
         for(int i=0;i<vert_cell.dofs;i++){
             new_cell+=vert_cell[i][0];
         }
@@ -155,10 +133,14 @@ class SlopeModification(object):
             if (c==0){
                 for(int i=0;i<new_vert_cell.dofs;i++){
                     if (new_vert_u_cell[i][0]/new_vert_cell[i][0]>UB){
-                        new_vert_u_cell[i][0]=0;
+                        if (new_vert_cell[i][0] <= LB){
+                            new_vert_u_cell[i][0]=0;
+                        }
                     }
                     if ((new_vert_u_cell[i][0]/new_vert_cell[i][0])<-UB){
-                        new_vert_u_cell[i][0]=0;
+                        if (new_vert_cell[i][0] <= LB){
+                            new_vert_u_cell[i][0]=0;
+                        }
                     }
                 }
             }
@@ -167,10 +149,14 @@ class SlopeModification(object):
                     new_vert_cell[i][0]=(new_cell/(new_cell-vert_cell[j][0]))*(vert_cell[i][0]-vert_cell[j][0]);
                     if (new_vert_cell[i][0]>0){
                         if (new_vert_u_cell[i][0]/new_vert_cell[i][0]>UB){
-                            new_vert_u_cell[i][0]=0;
+                            if (new_vert_cell[i][0] <= LB){
+                                new_vert_u_cell[i][0]=0;
+                            }
                         }
                         if ((new_vert_u_cell[i][0]/new_vert_cell[i][0])<-UB){
-                            new_vert_u_cell[i][0]=0;
+                            if (new_vert_cell[i][0] <= LB){
+                                new_vert_u_cell[i][0]=0;
+                            }
                         }
                     }
                 }
@@ -185,10 +171,14 @@ class SlopeModification(object):
                     if (vert_cell[i][0]>E){
                         new_vert_cell[i][0]=new_cell*vert_cell.dofs;
                         if (new_vert_u_cell[i][0]/new_vert_cell[i][0]>UB){
-                            new_vert_u_cell[i][0]=0;
+                            if (new_vert_cell[i][0] <= LB){
+                                new_vert_u_cell[i][0]=0;
+                            }
                         }
                         if ((new_vert_u_cell[i][0]/new_vert_cell[i][0])<-UB){
-                            new_vert_u_cell[i][0]=0;
+                            if (new_vert_cell[i][0] <= LB){
+                                new_vert_u_cell[i][0]=0;
+                            }
                         }
                     }
                 }
@@ -198,9 +188,11 @@ class SlopeModification(object):
 
         # replace parameter strings
         self.slope_modification_1d_kernel = self.slope_modification_1d_kernel % {"epsilon": eps1,
-                                                                                 "ubnd": bnd1}
+                                                                                 "ubnd": bnd1,
+                                                                                 "lbnd": lbnd1}
         self.slope_modification_2d_kernel = self.slope_modification_2d_kernel % {"epsilon": eps2,
-                                                                                 "ubnd": bnd2}
+                                                                                 "ubnd": bnd2,
+                                                                                 "lbnd": lbnd2}
 
         super(SlopeModification, self).__init__()
 

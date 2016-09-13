@@ -6,7 +6,7 @@ from firedrake import *
 from flooddrake import *
 
 # Meshsize
-n = 10
+n = 25
 mesh = SquareMesh(n, n, 50)
 
 # mixed function space
@@ -18,11 +18,11 @@ V = v_h*v_mu*v_mv
 # setup free surface depth
 g = Function(V)
 x = SpatialCoordinate(V.mesh())
-g.sub(0).interpolate(conditional((x[0] + x[1]) < 20, 0.75, 0.6))
+g.sub(0).interpolate(conditional((x[0] + x[1]) < 20, 5.2, 5))
 
 # setup bed
 bed = Function(V)
-bed.sub(0).interpolate(conditional((x[0] + x[1]) > (50.0 * 1.6), 0.8, (0.5 / 50.0) * (x[0] + x[1])))
+bed.sub(0).interpolate(conditional((x[0] + x[1]) > (100.0 * 1.6), 3.75 * 3.2, (7.5 / 100.0) * (x[0] + x[1])))
 
 # setup actual depth
 w = g.assign(g - bed)
@@ -30,7 +30,12 @@ w = g.assign(g - bed)
 # setup source (is only a depth function)
 source = Function(v_h)
 
-# timestep
-solution = Timestepper(V, bed, source, 0.025)
+# parameters
+parameters["flooddrake"].update({"eps2": 1e-11,
+                                 "ubnd2": 1.48e0,
+                                 "lbnd2": 1e0})
 
-solution.stepper(0, 80, w, 0.1)
+# timestep
+solution = Timestepper(V, bed, source, 0.5)
+
+solution.stepper(0, 50, w, 0.5)

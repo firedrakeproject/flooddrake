@@ -7,7 +7,7 @@ from flooddrake import *
 
 
 n = 20
-mesh = SquareMesh(n, n, 50)
+mesh = SquareMesh(n, n, 1)
 
 # mixed function space
 v_h = FunctionSpace(mesh, "DG", 1)
@@ -18,12 +18,12 @@ V = v_h * v_mu * v_mv
 # setup free surface depth
 g = Function(V)
 x = SpatialCoordinate(V.mesh())
-g.sub(0).assign(0.0)
+g.sub(0).assign(0.005)
 
 # setup bed
 bed = Function(V)
 x = SpatialCoordinate(V.mesh())
-bed.sub(0).interpolate(conditional(x[0] < 15, (15 - x[0]), conditional(x[0] > 25, 1.5 * (x[0] - 25), 0.0)))
+bed.sub(0).interpolate(conditional(x[0] > (50 / 50), (1.5 / 50) * (15 / 50), conditional(x[0] < 15 / 50, (1 / 50) * ((15 / 50) - x[0]), conditional(x[0] > (25 / 50), (1.5 / 50) * (x[0] - (25 / 50)), 0.0))))
 
 
 # setup actual depth
@@ -33,12 +33,17 @@ bedFile = File('bed.pvd')
 bedFile.write(bed.sub(0))
 
 # setup source (is only a depth function)
-source = Function(v_h).assign(0.075)
+source = Function(v_h).assign(0.000075)
+
+# parameters
+parameters["flooddrake"].update({"eps2": 8e-6,
+                                 "ubnd2": 1e1,
+                                 "lbnd2": 8e-6})
 
 # timestep
-solution = Timestepper(V, bed, source, 0.025)
+solution = Timestepper(V, bed, source, 0.5)
 
-solution.stepper(0, 30, w, 0.025)
+solution.stepper(0, 100, w, 0.5)
 
 
 # plot actual depth
