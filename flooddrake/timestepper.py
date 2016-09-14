@@ -12,7 +12,7 @@ from firedrake import *
 
 class Timestepper(object):
 
-    def __init__(self, V, bed, source, MaxTimestep=0.025, func=lambda x: 1):
+    def __init__(self, V, bed, source, MaxTimestep=0.025, func=lambda x: 1, bc_option='solid wall', w_at_boundary=None):
 
         self.b = bed
 
@@ -37,6 +37,10 @@ class Timestepper(object):
         self.Dt = Constant(self.dt)
 
         self.V = V
+
+        # boundary attributes
+        self.bc_option = bc_option
+        self.w_at_boundary = w_at_boundary
 
         # define flux and state vectors
         if self.mesh.geometric_dimension() == 2:
@@ -148,7 +152,7 @@ class Timestepper(object):
         # Define Fluxes - these get overidden every step
         self.PosFlux = Interior_Flux(self.N('+'), self.V, self.w_plus, self.w_minus)
         self.NegFlux = Interior_Flux(self.N('-'), self.V, self.w_minus, self.w_plus)
-        self.BoundaryFlux = Boundary_Flux(self.V, self.w)
+        self.BoundaryFlux = Boundary_Flux(self.V, self.w, self.bc_option, self.w_at_boundary)
 
         # Define source term - these get overidden every step
         if self.mesh.geometric_dimension() == 1:
