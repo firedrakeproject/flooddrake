@@ -39,12 +39,16 @@ def test_well_balanced():
     depth_start = Function(v_h).project(ds.sub(0))
 
     # boundary w
-    boundary_w = Function(V)
-    boundary_w.sub(0).assign(0.4 - bed.sub(0))
+    boundary_w1 = Function(V)
+    boundary_w1.sub(0).assign(0.4 - bed.sub(0))
+    boundary_w2 = Function(V)
+    boundary_w2.sub(0).assign(0.4 - bed.sub(0))
+    boundary_conditions = [BoundaryConditions(1, option='river', value=boundary_w1),
+                           BoundaryConditions(2, option='river', value=boundary_w2)]
 
     # timestep
     t_end = 0.5
-    solution = Timestepper(V, bed, source, 0.025, bc_option='river', w_at_boundary=boundary_w)
+    solution = Timestepper(V, bed, source, 0.025, boundary_conditions=boundary_conditions)
     w_end = solution.stepper(0, t_end, w, 0.025)
 
     h_start, mu_start = split(w_start)

@@ -6,13 +6,15 @@ from flooddrake.slope_limiter import SlopeLimiter
 from flooddrake.flux import Interior_Flux, Boundary_Flux
 from flooddrake.min_dx import MinDx
 from flooddrake.adaptive_timestepping import AdaptiveTimestepping
+from flooddrake.boundary_conditions import BoundaryConditions
 
 from firedrake import *
 
 
 class Timestepper(object):
 
-    def __init__(self, V, bed, source, MaxTimestep=0.025, func=lambda x: 1, bc_option='solid wall', w_at_boundary=None):
+    def __init__(self, V, bed, source, MaxTimestep=0.025, func=lambda x: 1,
+                 boundary_conditions=None):
 
         self.b = bed
 
@@ -38,9 +40,30 @@ class Timestepper(object):
 
         self.V = V
 
-        # boundary attributes
-        self.bc_option = bc_option
-        self.w_at_boundary = w_at_boundary
+        # boundary conditions - default at solid wall for makers not given
+        self.boundary_conditions = boundary_conditions
+        if self.boundary_conditions is None:
+            if self.mesh.geometric_dimension() == 1:
+                self.boundary_conditions = [BoundaryConditions(1),
+                                            BoundaryConditions(2)]
+            if self.mesh.geometric_dimension() == 2:
+                self.boundary_conditions = [BoundaryConditions(1),
+                                            BoundaryConditions(2),
+                                            BoundaryConditions(3),
+                                            BoundaryConditions(4)]
+        else:
+            if self.mesh.geometric_dimension() == 1:
+                markers = [1, 2]
+                for bc in self.boundary_conditions:
+                    markers.remove(bc.marker)
+                for i in markers:
+                    self.boundary_conditions.append(BoundaryConditions(i))
+            if self.mesh.geometric_dimension() == 2:
+                markers = [1, 2, 3, 4]
+                for bc in self.boundary_conditions:
+                    markers.remove(bc.marker)
+                for i in markers:
+                    self.boundary_conditions.append(BoundaryConditions(i))
 
         # define flux and state vectors
         if self.mesh.geometric_dimension() == 2:
@@ -152,7 +175,14 @@ class Timestepper(object):
         # Define Fluxes - these get overidden every step
         self.PosFlux = Interior_Flux(self.N('+'), self.V, self.w_plus, self.w_minus)
         self.NegFlux = Interior_Flux(self.N('-'), self.V, self.w_minus, self.w_plus)
-        self.BoundaryFlux = Boundary_Flux(self.V, self.w, self.bc_option, self.w_at_boundary)
+
+        # Define Boundary Fluxes - one for each boundary marker
+        self.BoundaryFlux = []
+        for i in range(self.mesh.geometric_dimension() * 2):
+            # put the state depths into the boundary values - remov if want to specify this
+            if self.boundary_conditions[i].option == 'river':
+                self.boundary_conditions[i].value.sub(0).assign(self.h)
+            self.BoundaryFlux.append(Boundary_Flux(self.V, self.w, self.boundary_conditions[i].option, self.boundary_conditions[i].value))
 
         # Define source term - these get overidden every step
         if self.mesh.geometric_dimension() == 1:
@@ -168,7 +198,14 @@ class Timestepper(object):
                                  dot(self.v.dx(1), self.F2) * dx +
                                  (dot(self.v('-'), self.NegFlux) +
                                   dot(self.v('+'), self.PosFlux)) * dS +
-                                 dot(self.v, self.BoundaryFlux) * ds +
+                                 (dot(self.v, self.BoundaryFlux[0]) *
+                                  ds(self.boundary_conditions[0].marker)) +
+                                 (dot(self.v, self.BoundaryFlux[1]) *
+                                  ds(self.boundary_conditions[1].marker)) +
+                                 (dot(self.v, self.BoundaryFlux[2]) *
+                                  ds(self.boundary_conditions[2].marker)) +
+                                 (dot(self.v, self.BoundaryFlux[3]) *
+                                  ds(self.boundary_conditions[3].marker)) +
                                  (dot(self.source, self.v)) * dx -
                                  (dot(self.v('-'), self.delta_minus) +
                                   dot(self.v('+'), self.delta_plus)) * dS))
@@ -179,7 +216,10 @@ class Timestepper(object):
                       self.Dt * (- dot(self.v.dx(0), self.F) * dx +
                                  (dot(self.v('-'), self.NegFlux) +
                                   dot(self.v('+'), self.PosFlux)) * dS +
-                                 dot(self.v, self.BoundaryFlux) * ds +
+                                 (dot(self.v, self.BoundaryFlux[0]) *
+                                  ds(self.boundary_conditions[0].marker)) +
+                                 (dot(self.v, self.BoundaryFlux[1]) *
+                                  ds(self.boundary_conditions[1].marker)) +
                                  (dot(self.source, self.v)) * dx -
                                  (dot(self.v('-'), self.delta_minus) +
                                   dot(self.v('+'), self.delta_plus)) * dS))

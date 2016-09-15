@@ -4,10 +4,6 @@ from __future__ import absolute_import
 from firedrake import *
 
 
-# boundary condition options
-options = ['solid wall', 'river']
-
-
 def Interior_Flux(N, V, wr, wl):
     """ Calculates the Interior fluxes between the positively restricted state vector function wr and negatively restricted state vector function wl
 
@@ -140,7 +136,7 @@ def Interior_Flux(N, V, wr, wl):
         return Flux
 
 
-def Boundary_Flux(V, w, option='solid wall', w_at_boundary=None):
+def Boundary_Flux(V, w, option='solid wall', value=None):
     """ Calculates the boundary flux between the state vector and a solid reflective wall (zero velocity, same depth (-> to improve in the future add other boundary conditions options)
 
             :param w: State vector function
@@ -152,8 +148,8 @@ def Boundary_Flux(V, w, option='solid wall', w_at_boundary=None):
             :param option: boundary condition option
             :type option: str
 
-            :param w_at_boundary: specified w at boundary
-            :type w_at_boundary: vector of floats
+            :param value: state vector at boundary
+            :type value: :class:`Function`
 
 
     """
@@ -164,15 +160,12 @@ def Boundary_Flux(V, w, option='solid wall', w_at_boundary=None):
 
     N = FacetNormal(V.mesh())
 
-    if option not in options:
-        raise ValueError('bc option must be either solid wall or river')
-
     if option == 'river':
-        if w_at_boundary is None:
-            raise ValueError('river bc option needs w specified at boundary')
-        else:
-            if len(w_at_boundary) - 1 != d:
-                raise ValueError('dimension of w_at_boundary needs to equal dimension of state')
+        if isinstance(value, Function) is False:
+            raise ValueError('value at boundary is not state vector Function for river bcs')
+
+        if len(value.split()) - 1 != d:
+            raise ValueError('dimension of w_at_boundary needs to equal dimension of state')
 
     # two different fluxes depending on dimension - both solid wall weak boundary conditions
     # has different normal (no restirction!)
@@ -188,9 +181,9 @@ def Boundary_Flux(V, w, option='solid wall', w_at_boundary=None):
 
         if option == 'river':
             mur = mu
-            mul = w_at_boundary[1]
+            mul = value.sub(1)
             hr = h
-            hl = w_at_boundary[0]
+            hl = value.sub(0)
 
         # Do HLLE flux
         vr = conditional(hr <= 0, zero(mur.ufl_shape), (mur / hr) * N[0])
@@ -240,14 +233,14 @@ def Boundary_Flux(V, w, option='solid wall', w_at_boundary=None):
             hl = h
 
         if option == 'river':
-            mul = w_at_boundary[1]
+            mul = value.sub(1)
             mur = mu
 
             mvr = mv
-            mvl = w_at_boundary[2]
+            mvl = value.sub(2)
 
             hr = h
-            hl = w_at_boundary[0]
+            hl = value.sub(0)
 
         # maybe fit a version where one can specify if one wants mv to be
         # opposite sign - would do this via adding two different variables
