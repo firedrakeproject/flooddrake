@@ -52,6 +52,8 @@ class Timestepper(object):
                                             BoundaryConditions(3),
                                             BoundaryConditions(4)]
         else:
+            if isinstance(self.boundary_conditions, list) is False:
+                raise TypeError('boundary conditions need to be given as an list of conditions')
             if self.mesh.geometric_dimension() == 1:
                 markers = [1, 2]
                 for bc in self.boundary_conditions:
