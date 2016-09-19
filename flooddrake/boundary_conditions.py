@@ -21,6 +21,14 @@ class BoundaryConditions(object):
         :param value: state vector at marked boundary
         :type value: :class:`Function` (None if option='solid wall')
 
+        See help(mesh) for details on markers. E.g. The boundary markers for a UnitSquareMesh
+        are numbered as follows:
+
+            * 1: plane x == 0
+            * 2: plane x == 1
+            * 3: plane y == 0
+            * 4: plane y == 1
+
     """
 
     def __init__(self, marker, option='solid wall', value=None):
@@ -38,8 +46,5 @@ class BoundaryConditions(object):
         if self.option == 'river':
             if self.value is None:
                 raise ValueError('river bc option needs w specified at boundary')
-
-        if option == 'solid wall':
-            self._list = None
 
         super(BoundaryConditions, self).__init__()
