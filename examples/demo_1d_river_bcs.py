@@ -6,7 +6,7 @@ from firedrake import *
 from flooddrake import *
 
 # Meshsize
-n = 30
+n = 50
 mesh = UnitIntervalMesh(n)
 
 # mixed function space
@@ -27,15 +27,12 @@ bed.sub(0).assign(0)
 # setup actual depth
 w = g.assign(g - bed)
 
-# setup boundary river - inflow through river, against solid wall
+# setup boundary river - inflow through river, and outflow
 boundary_w1 = Function(V)
 boundary_w1.sub(0).assign(0.05 - bed.sub(0))
 boundary_w1.sub(1).assign(0.05)  # river inflow
-boundary_w2 = Function(V)
-boundary_w2.sub(0).assign(0.05 - bed.sub(0))
-boundary_w2.sub(1).assign(0.05)  # solid wall (positive if we want outflow)
-boundary_conditions = [BoundaryConditions(1, option='river', value=boundary_w1),
-                       BoundaryConditions(2, option='river', value=boundary_w2)]
+boundary_conditions = [BoundaryConditions(1, option='inflow', value=boundary_w1),
+                       BoundaryConditions(2, option='outflow')]
 
 # parameters
 parameters["flooddrake"].update({"eps1": 1e-9,
@@ -48,4 +45,4 @@ source = Function(v_h)
 # timestep
 solution = Timestepper(V, bed, source, 0.25, boundary_conditions=boundary_conditions)
 
-solution.stepper(0, 50, w, 0.25)
+solution.stepper(0, 50, w, 0.0625)

@@ -190,7 +190,7 @@ class Timestepper(object):
         markers = np.copy(self.mesh_markers)
         for i in range(len(self.mesh_markers)):
             # put the state depths into the boundary values - remove if want to specify h
-            if self.boundary_conditions[i].option == 'river':
+            if self.boundary_conditions[i].option == 'inflow':
                 self.boundary_conditions[i].value.sub(0).assign(self.h)
             self.BoundaryFlux.append(Boundary_Flux(self.V, self.w, self.boundary_conditions[i].option, self.boundary_conditions[i].value))
             # check all markers are covered

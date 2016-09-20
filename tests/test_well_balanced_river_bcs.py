@@ -41,10 +41,8 @@ def test_well_balanced():
     # boundary w
     boundary_w1 = Function(V)
     boundary_w1.sub(0).assign(0.4 - bed.sub(0))
-    boundary_w2 = Function(V)
-    boundary_w2.sub(0).assign(0.4 - bed.sub(0))
-    boundary_conditions = [BoundaryConditions(1, option='river', value=boundary_w1),
-                           BoundaryConditions(2, option='river', value=boundary_w2)]
+    boundary_conditions = [BoundaryConditions(1, option='inflow', value=boundary_w1),
+                           BoundaryConditions(2, option='outflow')]
 
     # timestep
     t_end = 0.5

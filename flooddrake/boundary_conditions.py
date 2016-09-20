@@ -5,7 +5,7 @@ from __future__ import absolute_import
 
 
 # boundary condition options
-options = ['solid wall', 'river']
+options = ['solid wall', 'inflow', 'outflow']
 
 
 class BoundaryConditions(object):
@@ -16,7 +16,7 @@ class BoundaryConditions(object):
         :type marker: int
 
         :param option: boundary condition option
-        :type option: str (either 'solid wall' or 'river')
+        :type option: str (either 'solid wall', 'inflow' or 'outflow')
 
         :param value: state vector at marked boundary
         :type value: :class:`Function` (None if option='solid wall')
@@ -38,7 +38,11 @@ class BoundaryConditions(object):
         self.marker = marker
 
         if self.option not in options:
-            raise ValueError('bc option must be either solid wall or river')
+            raise ValueError('bc option must be either solid wall, inflow or outflow')
+
+        # set any value to None if option is not inflow
+        if self.option == 'outflow' or self.option == 'solid wall':
+            self.value = None
 
         if self.option == 'river':
             if self.value is None:

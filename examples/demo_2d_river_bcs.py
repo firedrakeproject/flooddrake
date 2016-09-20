@@ -32,11 +32,9 @@ source = Function(v_h)
 # boundary conditions - river flow through 1, 2 and solid wall 3, 4.
 boundary_w1 = Function(V)
 boundary_w1.sub(1).assign(0.25)
-boundary_w2 = Function(V)
-boundary_w2.sub(1).assign(0.25)
 
-boundary_conditions = [BoundaryConditions(1, option='river', value=boundary_w1),
-                       BoundaryConditions(2, option='river', value=boundary_w2)]
+boundary_conditions = [BoundaryConditions(1, option='inflow', value=boundary_w1),
+                       BoundaryConditions(2, option='outflow')]
 
 # timestep
 solution = Timestepper(V, bed, source, 0.1, boundary_conditions=boundary_conditions)

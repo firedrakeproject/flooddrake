@@ -6,7 +6,7 @@ from firedrake import *
 from flooddrake import *
 
 
-def test_default_boundaries_1d():
+def test_default_boundaries_1d_inflow():
 
     n = 10
     mesh = UnitIntervalMesh(n)
@@ -25,7 +25,7 @@ def test_default_boundaries_1d():
     # boundary - only give one boundary
     boundary_w = Function(V)
     marker = 1
-    boundary_conditions = [BoundaryConditions(marker, option='river', value=boundary_w)]
+    boundary_conditions = [BoundaryConditions(marker, option='inflow', value=boundary_w)]
 
     # timestep
     solution = Timestepper(V, bed, source, 0.025, boundary_conditions=boundary_conditions)
@@ -33,7 +33,39 @@ def test_default_boundaries_1d():
     # check bcs
     for i in range(2):
         if solution.boundary_conditions[i].marker == marker:
-            assert solution.boundary_conditions[i].option == 'river'
+            assert solution.boundary_conditions[i].option == 'inflow'
+        else:
+            assert solution.boundary_conditions[i].option == 'solid wall'
+            assert solution.boundary_conditions[i].value is None
+
+
+def test_default_boundaries_1d_outflow():
+
+    n = 10
+    mesh = UnitIntervalMesh(n)
+
+    # mixed function space
+    v_h = FunctionSpace(mesh, "DG", 1)
+    v_mu = FunctionSpace(mesh, "DG", 1)
+    V = v_h * v_mu
+
+    # setup bed
+    bed = Function(V)
+
+    # source term
+    source = Function(v_h)
+
+    # boundary - only give one boundary
+    marker = 1
+    boundary_conditions = [BoundaryConditions(marker, option='outflow')]
+
+    # timestep
+    solution = Timestepper(V, bed, source, 0.025, boundary_conditions=boundary_conditions)
+
+    # check bcs
+    for i in range(2):
+        if solution.boundary_conditions[i].marker == marker:
+            assert solution.boundary_conditions[i].option == 'outflow'
         else:
             assert solution.boundary_conditions[i].option == 'solid wall'
             assert solution.boundary_conditions[i].value is None
@@ -59,7 +91,7 @@ def test_default_boundaries_2d():
     # boundary - only give one boundary
     boundary_w = Function(V)
     marker = 2
-    boundary_conditions = [BoundaryConditions(marker, option='river', value=boundary_w)]
+    boundary_conditions = [BoundaryConditions(marker, option='inflow', value=boundary_w)]
 
     # timestep
     solution = Timestepper(V, bed, source, 0.025, boundary_conditions=boundary_conditions)
@@ -67,7 +99,7 @@ def test_default_boundaries_2d():
     # check bcs
     for i in range(4):
         if solution.boundary_conditions[i].marker == marker:
-            assert solution.boundary_conditions[i].option == 'river'
+            assert solution.boundary_conditions[i].option == 'inflow'
         else:
             assert solution.boundary_conditions[i].option == 'solid wall'
             assert solution.boundary_conditions[i].value is None

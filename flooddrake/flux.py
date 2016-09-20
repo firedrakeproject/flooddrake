@@ -154,15 +154,17 @@ def Boundary_Flux(V, w, option='solid wall', value=None):
 
     """
 
+    # Here, mur and mul denoted outside and inside of momentum cell
+
     d = V.mesh().geometric_dimension()
 
     gravity = parameters["flooddrake"]["gravity"]
 
     N = FacetNormal(V.mesh())
 
-    if option == 'river':
+    if option == 'inflow':  # outflow and solid wall take non prescribed values
         if isinstance(value, Function) is False:
-            raise ValueError('value at boundary is not state vector Function for river bcs')
+            raise ValueError('value at boundary is not state vector Function for inflow bcs')
 
         if len(value.split()) - 1 != d:
             raise ValueError('dimension of w_at_boundary needs to equal dimension of state')
@@ -177,11 +179,17 @@ def Boundary_Flux(V, w, option='solid wall', value=None):
             hr = h
             hl = h
 
-        if option == 'river':
+        if option == 'inflow':
             mur = mu
             mul = value.sub(1)
             hr = h
             hl = value.sub(0)
+
+        if option == 'outflow':
+            mur = mu
+            mul = mu
+            hr = h
+            hl = h
 
         # Do HLLE flux
         vr = conditional(hr <= 0, zero(mur.ufl_shape), (mur / hr) * N[0])
@@ -230,7 +238,7 @@ def Boundary_Flux(V, w, option='solid wall', value=None):
             hr = h
             hl = h
 
-        if option == 'river':
+        if option == 'inflow':
             mul = value.sub(1)
             mur = mu
 
@@ -239,6 +247,16 @@ def Boundary_Flux(V, w, option='solid wall', value=None):
 
             hr = h
             hl = value.sub(0)
+
+        if option == 'outflow':
+            mul = mu
+            mur = mu
+
+            mvr = mv
+            mvl = mv
+
+            hr = h
+            hl = h
 
         # Do HLLC flux
         ul = conditional(hl <= 0, zero(as_vector((mul / hl, mvl / hl)).ufl_shape),
