@@ -10,6 +10,12 @@ from flooddrake.boundary_conditions import BoundaryConditions
 
 from firedrake import *
 
+import numpy as np
+
+
+# integer markers can be any of these types -> ds() only takes np.int as subdomain_id
+marker_int_types = [np.int64, np.int32, np.int16, np.int8, np.int]
+
 
 class Timestepper(object):
 
@@ -43,29 +49,30 @@ class Timestepper(object):
         # boundary conditions - default at solid wall for makers not given
         self.boundary_conditions = boundary_conditions
         if self.boundary_conditions is None:
-            if self.mesh.geometric_dimension() == 1:
-                self.boundary_conditions = [BoundaryConditions(1),
-                                            BoundaryConditions(2)]
-            if self.mesh.geometric_dimension() == 2:
-                self.boundary_conditions = [BoundaryConditions(1),
-                                            BoundaryConditions(2),
-                                            BoundaryConditions(3),
-                                            BoundaryConditions(4)]
+            self.boundary_conditions = []
+            for i in self.mesh.topology.exterior_facets.unique_markers:
+                if type(i) in marker_int_types:
+                    i = int(i)  # convert to np.int
+                self.boundary_conditions.append(BoundaryConditions(i))
         else:
             if isinstance(self.boundary_conditions, list) is False:
                 raise TypeError('boundary conditions need to be given as an list of conditions')
-            if self.mesh.geometric_dimension() == 1:
-                markers = [1, 2]
-                for bc in self.boundary_conditions:
-                    markers.remove(bc.marker)
-                for i in markers:
-                    self.boundary_conditions.append(BoundaryConditions(i))
-            if self.mesh.geometric_dimension() == 2:
-                markers = [1, 2, 3, 4]
-                for bc in self.boundary_conditions:
-                    markers.remove(bc.marker)
-                for i in markers:
-                    self.boundary_conditions.append(BoundaryConditions(i))
+            markers = np.copy(self.mesh.topology.exterior_facets.unique_markers)
+            for bc in self.boundary_conditions:
+                # check marker is within list of markers
+                if bc.marker not in markers:
+                    raise ValueError('marker ' +
+                                     str(bc.marker) +
+                                     ' supplied to BoundaryConditions is ' +
+                                     'not valid for mesh')
+                markers = np.delete(markers, np.where(markers == bc.marker)[0])
+            for i in markers:
+                if type(i) in marker_int_types:
+                    i = int(i)  # convert to np.int
+                self.boundary_conditions.append(BoundaryConditions(i))
+
+        # now get all markers
+        self.mesh_markers = self.mesh.topology.exterior_facets.unique_markers
 
         # define flux and state vectors
         if self.mesh.geometric_dimension() == 2:
@@ -180,11 +187,15 @@ class Timestepper(object):
 
         # Define Boundary Fluxes - one for each boundary marker
         self.BoundaryFlux = []
-        for i in range(self.mesh.geometric_dimension() * 2):
+        markers = np.copy(self.mesh_markers)
+        for i in range(len(self.mesh_markers)):
             # put the state depths into the boundary values - remove if want to specify h
             if self.boundary_conditions[i].option == 'river':
                 self.boundary_conditions[i].value.sub(0).assign(self.h)
             self.BoundaryFlux.append(Boundary_Flux(self.V, self.w, self.boundary_conditions[i].option, self.boundary_conditions[i].value))
+            # check all markers are covered
+            markers = np.delete(markers, np.where(markers == self.boundary_conditions[i].marker)[0])
+        assert len(markers) == 0
 
         # Define source term - these get overidden every step
         if self.mesh.geometric_dimension() == 1:
@@ -200,17 +211,13 @@ class Timestepper(object):
                                  dot(self.v.dx(1), self.F2) * dx +
                                  (dot(self.v('-'), self.NegFlux) +
                                   dot(self.v('+'), self.PosFlux)) * dS +
-                                 (dot(self.v, self.BoundaryFlux[0]) *
-                                  ds(self.boundary_conditions[0].marker)) +
-                                 (dot(self.v, self.BoundaryFlux[1]) *
-                                  ds(self.boundary_conditions[1].marker)) +
-                                 (dot(self.v, self.BoundaryFlux[2]) *
-                                  ds(self.boundary_conditions[2].marker)) +
-                                 (dot(self.v, self.BoundaryFlux[3]) *
-                                  ds(self.boundary_conditions[3].marker)) +
                                  (dot(self.source, self.v)) * dx -
                                  (dot(self.v('-'), self.delta_minus) +
                                   dot(self.v('+'), self.delta_plus)) * dS))
+            # add in boundary fluxes
+            for i in range(len(self.boundary_conditions)):
+                self.a += (self.Dt * (dot(self.v, self.BoundaryFlux[i]) *
+                                      ds(self.boundary_conditions[i].marker)))
 
         if self.mesh.geometric_dimension() == 1:
             self.L = - dot(self.v, self.W) * dx
@@ -218,13 +225,13 @@ class Timestepper(object):
                       self.Dt * (- dot(self.v.dx(0), self.F) * dx +
                                  (dot(self.v('-'), self.NegFlux) +
                                   dot(self.v('+'), self.PosFlux)) * dS +
-                                 (dot(self.v, self.BoundaryFlux[0]) *
-                                  ds(self.boundary_conditions[0].marker)) +
-                                 (dot(self.v, self.BoundaryFlux[1]) *
-                                  ds(self.boundary_conditions[1].marker)) +
                                  (dot(self.source, self.v)) * dx -
                                  (dot(self.v('-'), self.delta_minus) +
                                   dot(self.v('+'), self.delta_plus)) * dS))
+            # add in boundary fluxes
+            for i in range(len(self.boundary_conditions)):
+                self.a += (self.Dt * (dot(self.v, self.BoundaryFlux[i]) *
+                                      ds(self.boundary_conditions[i].marker)))
 
         self.w_ = Function(self.V)
 

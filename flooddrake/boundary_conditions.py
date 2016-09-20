@@ -37,9 +37,6 @@ class BoundaryConditions(object):
         self.value = value
         self.marker = marker
 
-        if type(marker) is not int:
-            raise TypeError('marker must be integer denoting boundary numbers')
-
         if self.option not in options:
             raise ValueError('bc option must be either solid wall or river')
 
