@@ -167,8 +167,6 @@ def Boundary_Flux(V, w, option='solid wall', value=None):
         if len(value.split()) - 1 != d:
             raise ValueError('dimension of w_at_boundary needs to equal dimension of state')
 
-    # two different fluxes depending on dimension - both solid wall weak boundary conditions
-    # has different normal (no restirction!)
     if d == 1:
 
         h, mu = split(w)
@@ -241,10 +239,6 @@ def Boundary_Flux(V, w, option='solid wall', value=None):
 
             hr = h
             hl = value.sub(0)
-
-        # maybe fit a version where one can specify if one wants mv to be
-        # opposite sign - would do this via adding two different variables
-        # for mv
 
         # Do HLLC flux
         ul = conditional(hl <= 0, zero(as_vector((mul / hl, mvl / hl)).ufl_shape),

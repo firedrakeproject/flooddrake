@@ -181,7 +181,7 @@ class Timestepper(object):
         # Define Boundary Fluxes - one for each boundary marker
         self.BoundaryFlux = []
         for i in range(self.mesh.geometric_dimension() * 2):
-            # put the state depths into the boundary values - remov if want to specify this
+            # put the state depths into the boundary values - remove if want to specify h
             if self.boundary_conditions[i].option == 'river':
                 self.boundary_conditions[i].value.sub(0).assign(self.h)
             self.BoundaryFlux.append(Boundary_Flux(self.V, self.w, self.boundary_conditions[i].option, self.boundary_conditions[i].value))
