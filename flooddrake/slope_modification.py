@@ -31,168 +31,186 @@ class SlopeModification(object):
         # to remove when user specifies params
         eps1 = parameters["flooddrake"]["eps1"]
         eps2 = parameters["flooddrake"]["eps2"]
-        bnd1 = parameters["flooddrake"]["ubnd1"]
-        bnd2 = parameters["flooddrake"]["ubnd2"]
-        lbnd1 = parameters["flooddrake"]["lbnd1"]
-        lbnd2 = parameters["flooddrake"]["lbnd2"]
 
-        self.slope_modification_2d_kernel = """ double new_cell = 0; const double E=%(epsilon)s;  const double UB=%(ubnd)s, LB=%(lbnd)s; int j;
+        # add error if p>1 - in future make an option where we can project to p=1 from p>1
+        if self.V.ufl_element().degree() != 1:
+            raise ValueError('Slope Modification technique cannot be used with DGp, p > 1')
+
+        self.slope_modification_2d_kernel = """ double new_cell = 0; const double E=%(epsilon)s; int a=0, n1, n2, n3, a1=0, a3=0, flag1, flag2, flag3, deltau, deltav, npos;
+        #define STEP(X) (((X) <= 0) ? 0 : 1)
         for(int i=0;i<vert_cell.dofs;i++){
             new_cell+=vert_cell[i][0];
         }
         new_cell=new_cell/vert_cell.dofs;
-        if (new_cell<=0){
-            for(int i=0;i<new_vert_cell.dofs;i++){
-                new_vert_cell[i][0]=0;
-                new_vert_u_cell[i][0]=0;
-                new_vert_v_cell[i][0]=0;
+        for(int i=0;i<new_vert_cell.dofs;i++){
+            if (vert_cell[i][0]>E){
+                a=a+1;
             }
         }
-        if (new_cell>0){
-            int c=0;
+        if (a==new_vert_cell.dofs){
             for(int i=0;i<new_vert_cell.dofs;i++){
-                if (vert_cell[i][0]>E){
-                    new_vert_cell[i][0]=vert_cell[i][0];
-                    new_vert_u_cell[i][0]=vert_u_cell[i][0];
-                    new_vert_v_cell[i][0]=vert_v_cell[i][0];
-                }
-                if (vert_cell[i][0]<=E){
-                    c=c+1;
-                    j=i;
-                }
+                new_vert_cell[i][0]=vert_cell[i][0];
             }
-            if (c==0){
-                for(int i=0;i<new_vert_cell.dofs;i++){
-                    if (sqrt(pow((new_vert_u_cell[i][0]/new_vert_cell[i][0]),2)+pow((new_vert_v_cell[i][0]/new_vert_cell[i][0]),2))>UB){
-                        if (new_vert_cell[i][0] <= LB){
-                            new_vert_u_cell[i][0]=0;
-                            new_vert_v_cell[i][0]=0;
+        }
+        if (new_cell<=E){
+            for(int i=0;i<new_vert_cell.dofs;i++){
+                new_vert_cell[i][0]=new_cell;
+            }
+        }
+        if (new_cell>E){
+            if (a<new_vert_cell.dofs){
+                for(int i=1;i<new_vert_cell.dofs;i++){
+                    if (vert_cell[0][0]>=vert_cell[i][0]){
+                        a1=a1+1;
+                    }
+                }
+                for(int i=0;i<new_vert_cell.dofs-1;i++){
+                    if (vert_cell[2][0]>=vert_cell[i][0]){
+                        a3=a3+1;
+                    }
+                }
+                if (a1==2){
+                    n3=0;
+                    if (a3==2){
+                        n2=2;
+                        n1=1;
+                    }
+                    if (a3==1){
+                        n2=2;
+                        n1=1;
+                    }
+                    if (a3==0){
+                        n1=2;
+                        n2=1;
+                    }
+                }
+                if (a1==0){
+                    n1=0;
+                    if (a3==2){
+                        n3=2;
+                        n2=1;
+                    }
+                    if (a3==1){
+                        n2=2;
+                        n3=1;
+                    }
+                    if (a3==0){
+                        n2=2;
+                        n3=1;
+                    }
+                }
+                if (a1==1){
+                    n2=0;
+                    if (a3==0){
+                        n3=1;
+                        n1=2;
+                    }
+                    if (a3==2){
+                        n3=2;
+                        n1=1;
+                    }
+                    if (a3==1){
+                        if (vert_cell[0][0]>=vert_cell[2][0]){
+                            n3=1;
+                            n1=2;
+                        }
+                        if (vert_cell[0][0]<vert_cell[2][0]){
+                            n3=2;
+                            n1=1;
                         }
                     }
                 }
+                new_vert_cell[n1][0]=E;
+                new_vert_cell[n2][0]=fmax(E,vert_cell[n2][0]-(new_vert_cell[n1][0]-vert_cell[n1][0])/2.0);
+                new_vert_cell[n3][0]=vert_cell[n3][0]-(new_vert_cell[n1][0]-vert_cell[n1][0])-(new_vert_cell[n2][0]-vert_cell[n2][0]);
             }
-            if (c==1){
-                for(int i=0;i<new_vert_cell.dofs;i++){
-                    new_vert_cell[i][0]=(new_cell/(new_cell-vert_cell[j][0]))*(vert_cell[i][0]-vert_cell[j][0]);
-                    if (new_vert_cell[i][0]>0){
-                        if (sqrt(pow((new_vert_u_cell[i][0]/new_vert_cell[i][0]),2)+pow((new_vert_v_cell[i][0]/new_vert_cell[i][0]),2))>UB){
-                            if (new_vert_cell[i][0] <= LB){
-                                new_vert_u_cell[i][0]=0;
-                                new_vert_v_cell[i][0]=0;
-                            }
-                        }
-                    }
-                }
-                new_vert_u_cell[j][0]=0;
-                new_vert_v_cell[j][0]=0;
-            }
-            if (c==2){
-                for(int i=0;i<new_vert_cell.dofs;i++){
-                    if (vert_cell[i][0]<=E){
-                        new_vert_cell[i][0]=0;
-                        new_vert_u_cell[i][0]=0;
-                        new_vert_v_cell[i][0]=0;
-                    }
-                    if (vert_cell[i][0]>E){
-                        new_vert_cell[i][0]=new_cell*vert_cell.dofs;
-                        if (sqrt(pow((new_vert_u_cell[i][0]/new_vert_cell[i][0]),2)+pow((new_vert_v_cell[i][0]/new_vert_cell[i][0]),2))>UB){
-                            if (new_vert_cell[i][0] <= LB){
-                                new_vert_u_cell[i][0]=0;
-                                new_vert_v_cell[i][0]=0;
-                            }
-                        }
-                    }
-                }
+        }
+        flag1=STEP(new_vert_cell[0][0]-E);
+        flag2=STEP(new_vert_cell[1][0]-E);
+        flag3=STEP(new_vert_cell[2][0]-E);
+        npos=flag1+flag2+flag3;
+        deltau=(vert_u_cell[0][0]*(1-flag1))+(vert_u_cell[1][0]*(1-flag2))+(vert_u_cell[2][0]*(1-flag3));
+        deltav=(vert_v_cell[0][0]*(1-flag1))+(vert_v_cell[1][0]*(1-flag2))+(vert_v_cell[2][0]*(1-flag3));
+        if (npos>0){
+            new_vert_u_cell[0][0]=flag1*(vert_u_cell[0][0]+(deltau/npos));
+            new_vert_u_cell[1][0]=flag2*(vert_u_cell[1][0]+(deltau/npos));
+            new_vert_u_cell[2][0]=flag3*(vert_u_cell[2][0]+(deltau/npos));
+            new_vert_v_cell[0][0]=flag1*(vert_v_cell[0][0]+(deltav/npos));
+            new_vert_v_cell[1][0]=flag2*(vert_v_cell[1][0]+(deltav/npos));
+            new_vert_v_cell[2][0]=flag3*(vert_v_cell[2][0]+(deltav/npos));
+        }
+        if (npos==0){
+            new_vert_u_cell[0][0]=0;
+            new_vert_u_cell[1][0]=0;
+            new_vert_u_cell[2][0]=0;
+            new_vert_v_cell[0][0]=0;
+            new_vert_v_cell[1][0]=0;
+            new_vert_v_cell[2][0]=0;
+        }
+        for(int i=0;i<new_vert_cell.dofs;i++){
+            if  (new_vert_cell[i][0]<=0){
+                new_vert_cell[i][0]=0;
             }
         }
         """
 
-        self.slope_modification_1d_kernel = """ double new_cell = 0; const double E=%(epsilon)s; const double UB=%(ubnd)s, LB=%(lbnd)s; int j;
+        self.slope_modification_1d_kernel = """ double new_cell = 0; const double E=%(epsilon)s; int a=0, n1, n2, flag1, flag2, deltau, npos;
+        #define STEP(X) (((X) <= 0) ? 0 : 1)
         for(int i=0;i<vert_cell.dofs;i++){
             new_cell+=vert_cell[i][0];
         }
         new_cell=new_cell/vert_cell.dofs;
-        if (new_cell<=0){
-            for(int i=0;i<new_vert_cell.dofs;i++){
-                new_vert_cell[i][0]=0;
-                new_vert_u_cell[i][0]=0;
+        for(int i=0;i<new_vert_cell.dofs;i++){
+            if (vert_cell[i][0]>E){
+                a=a+1;
             }
         }
-        if (new_cell>0){
-            int c=0;
+        if (a==new_vert_cell.dofs){
             for(int i=0;i<new_vert_cell.dofs;i++){
-                if (vert_cell[i][0]>E){
-                    new_vert_cell[i][0]=vert_cell[i][0];
-                    new_vert_u_cell[i][0]=vert_u_cell[i][0];
-                }
-                if (vert_cell[i][0]<=E){
-                    c=c+1;
-                    j=i;
-                }
+                new_vert_cell[i][0]=vert_cell[i][0];
             }
-            if (c==0){
-                for(int i=0;i<new_vert_cell.dofs;i++){
-                    if (new_vert_u_cell[i][0]/new_vert_cell[i][0]>UB){
-                        if (new_vert_cell[i][0] <= LB){
-                            new_vert_u_cell[i][0]=0;
-                        }
-                    }
-                    if ((new_vert_u_cell[i][0]/new_vert_cell[i][0])<-UB){
-                        if (new_vert_cell[i][0] <= LB){
-                            new_vert_u_cell[i][0]=0;
-                        }
-                    }
-                }
+        }
+        if (new_cell<=E){
+            for(int i=0;i<new_vert_cell.dofs;i++){
+                new_vert_cell[i][0]=new_cell;
             }
-            if (c==1){
-                for(int i=0;i<new_vert_cell.dofs;i++){
-                    new_vert_cell[i][0]=(new_cell/(new_cell-vert_cell[j][0]))*(vert_cell[i][0]-vert_cell[j][0]);
-                    if (new_vert_cell[i][0]>0){
-                        if (new_vert_u_cell[i][0]/new_vert_cell[i][0]>UB){
-                            if (new_vert_cell[i][0] <= LB){
-                                new_vert_u_cell[i][0]=0;
-                            }
-                        }
-                        if ((new_vert_u_cell[i][0]/new_vert_cell[i][0])<-UB){
-                            if (new_vert_cell[i][0] <= LB){
-                                new_vert_u_cell[i][0]=0;
-                            }
-                        }
-                    }
+        }
+        if (new_cell>E){
+            if (a<new_vert_cell.dofs){
+                if (vert_cell[0][0]>=vert_cell[1][0]){
+                    n1=1;
+                    n2=0;
                 }
-                new_vert_u_cell[j][0]=0;
+                if (vert_cell[0][0]<vert_cell[1][0]){
+                    n1=0;
+                    n2=1;
+                }
+                new_vert_cell[n1][0]=E;
+                new_vert_cell[n2][0]=vert_cell[n2][0]-(new_vert_cell[n1][0]-vert_cell[n1][0]);
             }
-            if (c==2){
-                for(int i=0;i<new_vert_cell.dofs;i++){
-                    if (vert_cell[i][0]<=E){
-                        new_vert_cell[i][0]=0;
-                        new_vert_u_cell[i][0]=0;
-                    }
-                    if (vert_cell[i][0]>E){
-                        new_vert_cell[i][0]=new_cell*vert_cell.dofs;
-                        if (new_vert_u_cell[i][0]/new_vert_cell[i][0]>UB){
-                            if (new_vert_cell[i][0] <= LB){
-                                new_vert_u_cell[i][0]=0;
-                            }
-                        }
-                        if ((new_vert_u_cell[i][0]/new_vert_cell[i][0])<-UB){
-                            if (new_vert_cell[i][0] <= LB){
-                                new_vert_u_cell[i][0]=0;
-                            }
-                        }
-                    }
-                }
+        }
+        flag1=STEP(new_vert_cell[0][0]-E);
+        flag2=STEP(new_vert_cell[1][0]-E);
+        npos=flag1+flag2;
+        deltau=(vert_u_cell[0][0]*(1-flag1))+(vert_u_cell[1][0]*(1-flag2));
+        if (npos>0){
+            new_vert_u_cell[0][0]=flag1*(vert_u_cell[0][0]+(deltau/npos));
+            new_vert_u_cell[1][0]=flag2*(vert_u_cell[1][0]+(deltau/npos));
+        }
+        if (npos==0){
+            new_vert_u_cell[0][0]=0;
+            new_vert_u_cell[1][0]=0;
+        }
+        for(int i=0;i<new_vert_cell.dofs;i++){
+            if  (new_vert_cell[i][0]<=0){
+                new_vert_cell[i][0]=0;
             }
         }
         """
 
         # replace parameter strings
-        self.slope_modification_1d_kernel = self.slope_modification_1d_kernel % {"epsilon": eps1,
-                                                                                 "ubnd": bnd1,
-                                                                                 "lbnd": lbnd1}
-        self.slope_modification_2d_kernel = self.slope_modification_2d_kernel % {"epsilon": eps2,
-                                                                                 "ubnd": bnd2,
-                                                                                 "lbnd": lbnd2}
+        self.slope_modification_1d_kernel = self.slope_modification_1d_kernel % {"epsilon": eps1}
+        self.slope_modification_2d_kernel = self.slope_modification_2d_kernel % {"epsilon": eps2}
 
         super(SlopeModification, self).__init__()
 
