@@ -1,6 +1,8 @@
 from __future__ import division
 from __future__ import absolute_import
 
+from ufl import And
+
 from firedrake import *
 
 
@@ -17,13 +19,16 @@ def Interior_Flux(N, V, wr, wl):
 
     d = V.mesh().geometric_dimension()
 
-    gravity = parameters["flooddrake"]["gravity"]
+    gravity = Function(V.sub(0)).assign(parameters["flooddrake"]["gravity"])
 
     # two different fluxes depending on dimension
     if d == 1:
 
         hr, mur = wr[0], wr[1]
         hl, mul = wl[0], wl[1]
+
+        E = parameters["flooddrake"]["eps1"]
+        g = conditional(And(hr < E, hl < E), zero(gravity('+').ufl_shape), gravity('+'))
 
         # Do HLLE flux
         vr = conditional(hr <= 0, zero(mur.ufl_shape), (mur / hr) * N)
@@ -33,21 +38,21 @@ def Interior_Flux(N, V, wr, wl):
         y = ((sqrt(hr) * vr) + (sqrt(hl) * vl)) / (sqrt(hl) + sqrt(hr))
         v_star = conditional(eq(0, (sqrt(hl) + sqrt(hr))), zero(y.ufl_shape), y)
 
-        c_plus = Max(0, Max(vl + sqrt(gravity * hl), v_star + sqrt(gravity * h_star)))
-        c_minus = Min(0, Min(vr - sqrt(gravity * hr), v_star - sqrt(gravity * h_star)))
+        c_plus = Max(0, Max(vl + sqrt(g * hl), v_star + sqrt(g * h_star)))
+        c_minus = Min(0, Min(vr - sqrt(g * hr), v_star - sqrt(g * h_star)))
 
         # Define F
         velocityr = conditional(hr <= 0, zero(mur.ufl_shape), (mur * mur) / hr)
         velocityl = conditional(hl <= 0, zero(mul.ufl_shape), (mul * mul) / hl)
 
-        Fr = as_vector((mur, velocityr + (gravity / 2 * ((hr * hr)))))
-        Fl = as_vector((mul, velocityl + (gravity / 2 * ((hl * hl)))))
+        Fr = as_vector((mur, velocityr + (g / 2 * ((hr * hr)))))
+        Fl = as_vector((mul, velocityl + (g / 2 * ((hl * hl)))))
         Wr = as_vector((hr, mur))
         Wl = as_vector((hl, mul))
 
         # Define Q
         I = as_matrix(((1, 0), (0, 1)))
-        C = as_matrix(((0, 1), ((-v_star * v_star) + (gravity * h_star), (2 * v_star))))
+        C = as_matrix(((0, 1), ((-v_star * v_star) + (g * h_star), (2 * v_star))))
 
         yl = ((c_plus + c_minus) / (c_plus - c_minus))
         yr = ((c_plus * c_minus) / (c_plus - c_minus))
@@ -64,6 +69,9 @@ def Interior_Flux(N, V, wr, wl):
         hr, mur, mvr = wr[0], wr[1], wr[2]
         hl, mul, mvl = wl[0], wl[1], wl[2]
 
+        E = parameters["flooddrake"]["eps2"]
+        g = conditional(And(hr < E, hl < E), zero(gravity('+').ufl_shape), gravity('+'))
+
         # Do HLLC flux
         hl_zero = conditional(hl <= 0, 0, 1)
         ur = conditional(hr <= 0, zero(as_vector((mur / hr, mvr / hr)).ufl_shape),
@@ -77,11 +85,11 @@ def Interior_Flux(N, V, wr, wl):
         vl = dot(ul, N)
 
         # set flux constants depending on wavelength
-        c_minus = Min(vr - sqrt(gravity * hr), vl - sqrt(gravity * hl))
-        c_plus = Min(vr + sqrt(gravity * hr), vl + sqrt(gravity * hl))
+        c_minus = Min(vr - sqrt(g * hr), vl - sqrt(g * hl))
+        c_plus = Min(vr + sqrt(g * hr), vl + sqrt(g * hl))
 
         # make sure we don't divide by 0 height
-        y = (((0.5 * gravity * hr * hr) - (0.5 * gravity * hl * hl) +
+        y = (((0.5 * g * hr * hr) - (0.5 * g * hl * hl) +
              (hl * vl * (c_plus - vl)) - (hr * vr * (c_minus - vr))) /
              ((hl * (c_plus - vl)) - (hr * (c_minus - vr))))
         c_s = conditional(eq((hr * (c_minus - vr)), (hl * (c_plus - vl))), zero(y.ufl_shape), y)
@@ -94,18 +102,18 @@ def Interior_Flux(N, V, wr, wl):
         velocity_vr = conditional(hr <= 0, zero(mvr.ufl_shape), (hl_zero * mvr * mvr) / hr)
 
         F1r = as_vector((mur,
-                         velocity_ur + ((gravity / 2) * (hr * hr)),
+                         velocity_ur + ((g / 2) * (hr * hr)),
                          velocityr))
         F2r = as_vector((mvr,
                          velocityr,
-                         velocity_vr + ((gravity / 2) * (hr * hr))))
+                         velocity_vr + ((g / 2) * (hr * hr))))
 
         F1l = as_vector((mul,
-                         velocity_ul + ((gravity / 2) * (hl * hl)),
+                         velocity_ul + ((g / 2) * (hl * hl)),
                          velocityl))
         F2l = as_vector((mvl,
                          velocityl,
-                         velocity_vl + ((gravity / 2) * (hl * hl))))
+                         velocity_vl + ((g / 2) * (hl * hl))))
 
         F_plus = as_vector((F1r, F2r))
         F_minus = as_vector((F1l, F2l))
