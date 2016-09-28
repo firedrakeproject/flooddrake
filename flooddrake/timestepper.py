@@ -88,6 +88,15 @@ class Timestepper(object):
 
         self.gravity = parameters["flooddrake"]["gravity"]
 
+        # negigible depth
+        if self.mesh.geometric_dimension() == 2:
+            self.E = parameters["flooddrake"]["eps2"]
+        if self.mesh.geometric_dimension() == 1:
+            self.E = parameters["flooddrake"]["eps1"]
+
+        # set plotting scaling negigible depth constant
+        self.plot_tol = 1.0
+
         self.SM = SlopeModification(self.V)
         self.SL = SlopeLimiter(self.b_, self.V)
 
@@ -278,7 +287,7 @@ class Timestepper(object):
         bout = Function(self.v_h).project(self.b_)
         bout_file = File("b.pvd")
 
-        self.Project = Projector(self.h + self.b_, hout)
+        self.Project = Projector(conditional(self.h <= (self.plot_tol * self.E), self.b_, self.h + self.b_), hout)
         self.Project.project()
         hout_file.write(hout)
         bout_file.write(bout)
