@@ -95,7 +95,7 @@ class Timestepper(object):
             self.E = parameters["flooddrake"]["eps1"]
 
         # set plotting scaling negigible depth constant
-        self.plot_tol = 1.0
+        self.plot_tol = 1.01
 
         self.SM = SlopeModification(self.V)
         self.SL = SlopeLimiter(self.b_, self.V)
