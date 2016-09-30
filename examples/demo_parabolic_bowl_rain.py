@@ -1,4 +1,4 @@
-""" demo file for simple 2d shallow water equations for dam break in a parabolic bowl"""
+""" demo file for simple 2d shallow water equations for rainfall into a parabolic bowl"""
 
 from __future__ import division
 
