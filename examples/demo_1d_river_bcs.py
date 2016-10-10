@@ -34,10 +34,6 @@ boundary_w1.sub(1).assign(0.05)  # river inflow
 boundary_conditions = [BoundaryConditions(1, option='inflow', value=boundary_w1),
                        BoundaryConditions(2, option='outflow')]
 
-# parameters
-parameters["flooddrake"].update({"eps1": 1e-9,
-                                 "ubnd1": 1e2})
-
 # setup source (is only a depth function)
 # constant rain
 source = Function(v_h)

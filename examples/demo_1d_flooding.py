@@ -7,21 +7,20 @@ from flooddrake import *
 
 # Meshsize
 n = 40
-mesh = SquareMesh(n, n, 50)
+mesh = IntervalMesh(n, 50)
 
 # mixed function space
 v_h = FunctionSpace(mesh, "DG", 1)
 v_mu = FunctionSpace(mesh, "DG", 1)
-v_mv = FunctionSpace(mesh, "DG", 1)
-V = v_h*v_mu*v_mv
+V = v_h * v_mu
 
 # parameters
-parameters["flooddrake"].update({"eps2": 2e-1})
+parameters["flooddrake"].update({"eps1": 2e-1})
 
 # setup free surface depth
 g = Function(V)
 x = SpatialCoordinate(V.mesh())
-g.sub(0).interpolate(conditional(x[0] < 20, 10.0/9.8, parameters["flooddrake"]["eps2"]))
+g.sub(0).interpolate(conditional(x[0] < 20, 10.0/9.8, parameters["flooddrake"]["eps1"]))
 
 # setup bed
 bed = Function(V)
@@ -33,6 +32,6 @@ w = g.assign(g - bed)
 source = Function(v_h)
 
 # timestep
-solution = Timestepper(V, bed, source, 0.05)
+solution = Timestepper(V, bed, source, 0.25)
 
-solution.stepper(0, 5, w, 0.5)
+solution.stepper(0, 10, w, 0.5)

@@ -9,6 +9,7 @@ from flooddrake.adaptive_timestepping import AdaptiveTimestepping
 from flooddrake.boundary_conditions import BoundaryConditions
 
 from firedrake import *
+from firedrake.logging import warning, RED
 
 import numpy as np
 
@@ -20,7 +21,7 @@ marker_int_types = [np.int64, np.int32, np.int16, np.int8, np.int]
 class Timestepper(object):
 
     def __init__(self, V, bed, source, MaxTimestep=0.025, func=lambda x: 1,
-                 boundary_conditions=None):
+                 boundary_conditions=None, MinTimestep=1e-8):
 
         self.b = bed
 
@@ -41,6 +42,7 @@ class Timestepper(object):
 
         self.AT = AdaptiveTimestepping(V, MaxTimestep)
         self.dt = MaxTimestep
+        self.MinTimestep = MinTimestep
         self.initial_dt = MaxTimestep
         self.Dt = Constant(self.dt)
 
@@ -85,6 +87,15 @@ class Timestepper(object):
             self.v_h, self.v_mu = split(self.V)
 
         self.gravity = parameters["flooddrake"]["gravity"]
+
+        # negigible depth
+        if self.mesh.geometric_dimension() == 2:
+            self.E = parameters["flooddrake"]["eps2"]
+        if self.mesh.geometric_dimension() == 1:
+            self.E = parameters["flooddrake"]["eps1"]
+
+        # set plotting scaling negigible depth constant
+        self.plot_tol = 1.01
 
         self.SM = SlopeModification(self.V)
         self.SL = SlopeLimiter(self.b_, self.V)
@@ -276,7 +287,7 @@ class Timestepper(object):
         bout = Function(self.v_h).project(self.b_)
         bout_file = File("b.pvd")
 
-        self.Project = Projector(self.h + self.b_, hout)
+        self.Project = Projector(conditional(self.h <= (self.plot_tol * self.E), self.b_, self.h + self.b_), hout)
         self.Project.project()
         hout_file.write(hout)
         bout_file.write(bout)
@@ -286,11 +297,23 @@ class Timestepper(object):
         # start counter of how many time dumps
         self.c = 1
 
+        # warning boolean marker
+        self.wmark = 0
+
         while self.t < t_end:
 
             # find new timestep
             self.dt = self.AT.FindTimestep(self.w)
             self.Dt.assign(self.dt)
+
+            # check that prescribed timestep doesn't fall below minimum timestep
+            if self.dt < self.MinTimestep:
+                if self.wmark is False:
+                    warning(RED % "Minimum timestep has been reached. " +
+                            "Simulation might become unstable.")
+                    self.wmark = 1
+                self.dt = self.MinTimestep
+                self.Dt.assign(self.dt)
 
             # check if remaining time to next time dump is less than timestep
             # correct if neeeded
