@@ -26,13 +26,13 @@ g.sub(0).interpolate(conditional(x[0] < 20, 10.0/9.8, parameters["flooddrake"]["
 # setup bed
 bed = Function(V)
 
-# setup actual depth
-w = g.assign(g - bed)
+# setup state
+state = State(V, g, bed)
 
 # setup source (is only a depth function)
 source = Function(v_h)
 
 # timestep
-solution = Timestepper(V, bed, source, 0.05)
+solution = Timestepper(V, state.bed, source, 0.05)
 
-solution.stepper(0, 5, w, 0.5)
+solution.stepper(0, 5, state.w, 0.5)

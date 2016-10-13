@@ -30,6 +30,9 @@ v_mucg = FunctionSpace(mesh, "CG", 1)
 v_mvcg = FunctionSpace(mesh, "CG", 1)
 Vcg = v_hcg * v_mucg * v_mvcg
 
+# parameters
+parameters["flooddrake"].update({"eps2": 8e-2})
+
 # setup free surface depth
 g = Function(V)
 x = SpatialCoordinate(V.mesh())
@@ -46,18 +49,13 @@ L = 25.0
 bed.sub(0).interpolate(H + ((e * abs(x[0] - 25)) / cos(theta)) +
                        (scale * (sin(4 * np.pi * x[0] / L) * sin(4 * np.pi * x[1] / L))))
 
-# parameters
-parameters["flooddrake"].update({"eps2": 8e-2})
-
-w = g.assign(g - bed)
-
-# setup actual depth
-w.sub(0).dat.data[np.where(w.sub(0).dat.data[:] <= 0)[0]] = parameters["flooddrake"]["eps2"]
+# setup state
+state = State(V, g, bed)
 
 # setup source (is only a depth function)
 source = Function(v_h).assign(rainfall_distribution())
 
 # timestep
-solution = Timestepper(V, bed, source, 2.0)
+solution = Timestepper(V, state.bed, source, 2.0)
 
-solution.stepper(0, 200, w, 2.0)
+solution.stepper(0, 200, state.w, 2.0)

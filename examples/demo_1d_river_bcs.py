@@ -24,8 +24,8 @@ bed = Function(V)
 x = SpatialCoordinate(V.mesh())
 bed.sub(0).assign(0)
 
-# setup actual depth
-w = g.assign(g - bed)
+# setup state
+state = State(V, g, bed)
 
 # setup boundary river - inflow through river, and outflow
 boundary_w1 = Function(V)
@@ -39,6 +39,6 @@ boundary_conditions = [BoundaryConditions(1, option='inflow', value=boundary_w1)
 source = Function(v_h)
 
 # timestep
-solution = Timestepper(V, bed, source, 0.25, boundary_conditions=boundary_conditions)
+solution = Timestepper(V, state.bed, source, 0.25, boundary_conditions=boundary_conditions)
 
-solution.stepper(0, 50, w, 0.0625)
+solution.stepper(0, 50, state.w, 0.0625)

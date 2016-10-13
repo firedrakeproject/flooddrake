@@ -24,13 +24,13 @@ g.sub(0).interpolate(conditional(
 # setup bed
 bed = Function(V)
 
-# setup actual depth
-w = g.assign(g - bed)
+# setup state
+state = State(V, g, bed)
 
 # setup source (is only a depth function)
 source = Function(v_h)
 
 # timestep
-solution = Timestepper(V, bed, source, 0.1)
+solution = Timestepper(V, state.bed, source, 0.1)
 
-solution.stepper(0, 0.75, w, 0.1)
+solution.stepper(0, 0.75, state.w, 0.1)
