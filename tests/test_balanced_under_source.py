@@ -25,16 +25,16 @@ def test_balanced_under_source():
     # setup bed
     bed = Function(V)
 
-    # setup actual depth
-    w = g.assign(g - bed)
+    # setup state
+    state = State(V, g, bed)
 
     # source term
     source = Function(v_h).assign(0.05)
 
     # timestep
     t_end = 0.01
-    solution = Timestepper(V, bed, source, 0.025)
-    w_end = solution.stepper(0, t_end, w, 0.025)
+    solution = Timestepper(V, state.bed, source, 0.025)
+    w_end = solution.stepper(0, t_end, state.w, 0.025)
 
     h_end, mu_end = split(w_end)
 
