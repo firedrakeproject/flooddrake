@@ -20,7 +20,7 @@ marker_int_types = [np.int64, np.int32, np.int16, np.int8, np.int]
 
 class Timestepper(object):
 
-    def __init__(self, V, bed, source, MaxTimestep=0.025, func=lambda x: 1,
+    def __init__(self, V, bed, source=None, MaxTimestep=0.025, func=lambda x: 1,
                  boundary_conditions=None, MinTimestep=1e-8):
 
         self.b = bed
@@ -85,6 +85,10 @@ class Timestepper(object):
             self.N = FacetNormal(self.mesh)[0]
             self.b_, _1 = split(self.b)
             self.v_h, self.v_mu = split(self.V)
+
+        # define default source
+        if self.source_term is None:
+            self.source_term = Function(self.v_h)
 
         self.gravity = parameters["flooddrake"]["gravity"]
 
