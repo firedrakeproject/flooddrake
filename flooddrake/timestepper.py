@@ -80,11 +80,11 @@ class Timestepper(object):
         if self.mesh.geometric_dimension() == 2:
             self.N = FacetNormal(self.mesh)
             self.b_, _1, _2 = split(self.b)
-            self.v_h, self.v_mu, self.mv = split(self.V)
+            self.v_h, self.v_mu, self.mv = self.V.split()
         if self.mesh.geometric_dimension() == 1:
             self.N = FacetNormal(self.mesh)[0]
             self.b_, _1 = split(self.b)
-            self.v_h, self.v_mu = split(self.V)
+            self.v_h, self.v_mu = self.V.split()
 
         self.gravity = parameters["flooddrake"]["gravity"]
 
