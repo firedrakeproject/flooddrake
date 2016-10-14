@@ -14,12 +14,12 @@ class SlopeLimiter(object):
         if self.V.mesh().geometric_dimension() == 2:
 
             # split function spaces
-            self.v, self.vu, self.vv = split(self.V)
+            self.v, self.vu, self.vv = self.V.split()
 
         if self.V.mesh().geometric_dimension() == 1:
 
             # split function spaces
-            self.v, self.vu = split(self.V)
+            self.v, self.vu = self.V.split()
 
         # define functions
         self.H = Function(self.v)
