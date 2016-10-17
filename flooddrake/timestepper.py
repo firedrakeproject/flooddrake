@@ -257,7 +257,7 @@ class Timestepper(object):
                                                                  'pc_type': 'bjacobi',
                                                                  'mat_type': 'aij'})
 
-    def stepper(self, t_start, t_end, w, t_dump):
+    def stepper(self, t_start, t_end, w, t_visualization):
         """ Timesteps the shallow water equations from t_start to t_end using a 3rd order SSP Runge-Kutta scheme
 
                 :param t_start: start time
@@ -268,8 +268,8 @@ class Timestepper(object):
 
                 :param w: Current state vector function
 
-                :param t_dump: time interval to write the free surface water depth to a .pvd file
-                :type t_dump: float
+                :param t_visualization: time interval to write the free surface water depth to a .pvd file
+                :type t_visualization: float
 
         """
 
@@ -285,10 +285,12 @@ class Timestepper(object):
         self.__update_slope_modification()
 
         hout = Function(self.v_h)
+        hout.rename("free surface depth")
         # free surface depth
         hout_file = File("h.pvd")
         # bed depth
         bout = Function(self.v_h).project(self.b_)
+        bout.rename("topography")
         bout_file = File("b.pvd")
 
         self.Project = Projector(conditional(self.h <= (self.plot_tol * self.E), self.b_, self.h + self.b_), hout)
@@ -321,13 +323,13 @@ class Timestepper(object):
 
             # check if remaining time to next time dump is less than timestep
             # correct if neeeded
-            if self.dt + self.t > self.c * t_dump:
-                self.dt = (self.c * t_dump) - self.t
+            if self.dt + self.t > self.c * t_visualization:
+                self.dt = (self.c * t_visualization) - self.t
                 self.Dt.assign(self.dt)
 
             # check if remaining time to end time is less than timestep
             # correct if needed
-            if (self.t <= (self.c + 1) * t_dump) and (self.dt + self.t > t_end):
+            if (self.t <= (self.c + 1) * t_visualization) and (self.dt + self.t > t_end):
                 self.dt = t_end - self.t
                 self.Dt.assign(self.dt)
 
@@ -363,7 +365,7 @@ class Timestepper(object):
             # timstep complete - dump realisation if needed
             self.t += self.dt
 
-            if self.t == self.c * t_dump:
+            if self.t == self.c * t_visualization:
                 self.Project.project()
                 hout_file.write(hout)
                 bout_file.write(bout)
