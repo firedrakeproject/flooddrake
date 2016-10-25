@@ -1,7 +1,7 @@
 all:
 
 docs:
-	@echo "    generating flooddrake documentation"
+	@echo "    generating Flooddrake documentation"
 	@pdflatex -interaction batchmode flooddrake_doc
 	@bibtex flooddrake_doc
 	@pdflatex -interaction batchmode flooddrake_doc
