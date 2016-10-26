@@ -26,18 +26,18 @@ def test_conservation_mass_2d_flat_source():
     # setup bed
     bed = Function(V)
 
-    # setup actual depth
-    w = g.assign(g - bed)
+    # setup state
+    state = State(V, g, bed)
 
     # source term
     source = Function(v_h)
 
-    w_start = Function(V).assign(w)
+    w_start = Function(V).assign(state.w)
 
     # timestep
     t_end = 0.01
-    solution = Timestepper(V, bed, source, 0.025)
-    w_end = solution.stepper(0, t_end, w, 0.025)
+    solution = Timestepper(V, state.bed, source, 0.025)
+    w_end = solution.stepper(0, t_end, state.w, 0.025)
 
     h_start, mu_start, mv_start = split(w_start)
     h_end, mu_end, mv_end = split(w_end)
@@ -70,18 +70,18 @@ def test_conservation_mass_2d_unflat_source():
     # setup bed
     bed = Function(V)
 
-    # setup actual depth
-    w = g.assign(g - bed)
+    # setup state
+    state = State(V, g, bed)
 
     # source term
     source = Function(v_h)
 
-    w_start = Function(V).assign(w)
+    w_start = Function(V).assign(state.w)
 
     # timestep
     t_end = 0.01
-    solution = Timestepper(V, bed, source, 0.025)
-    w_end = solution.stepper(0, t_end, w, 0.025)
+    solution = Timestepper(V, state.bed, source, 0.025)
+    w_end = solution.stepper(0, t_end, state.w, 0.025)
 
     h_start, mu_start, mv_start = split(w_start)
     h_end, mu_end, mv_end = split(w_end)

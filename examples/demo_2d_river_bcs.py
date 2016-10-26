@@ -23,8 +23,8 @@ g.sub(0).assign(0.5)
 # setup bed
 bed = Function(V)
 
-# setup actual depth
-w = g.assign(g - bed)
+# setup state
+state = State(V, g, bed)
 
 # setup source (is only a depth function)
 source = Function(v_h)
@@ -37,6 +37,6 @@ boundary_conditions = [BoundaryConditions(1, option='inflow', value=boundary_w1)
                        BoundaryConditions(2, option='outflow')]
 
 # timestep
-solution = Timestepper(V, bed, source, 0.1, boundary_conditions=boundary_conditions)
+solution = Timestepper(V, state.bed, source, 0.1, boundary_conditions=boundary_conditions)
 
-solution.stepper(0, 50, w, 0.1)
+solution.stepper(0, 50, state.w, 0.1)

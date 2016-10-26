@@ -8,3 +8,4 @@ from flooddrake.params import *  # noqa
 from flooddrake.min_dx import *  # noqa
 from flooddrake.adaptive_timestepping import *  # noqa
 from flooddrake.boundary_conditions import *  # noqa
+from flooddrake.state import *  # noqa

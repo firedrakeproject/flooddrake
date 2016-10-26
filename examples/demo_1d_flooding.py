@@ -20,18 +20,18 @@ parameters["flooddrake"].update({"eps1": 2e-1})
 # setup free surface depth
 g = Function(V)
 x = SpatialCoordinate(V.mesh())
-g.sub(0).interpolate(conditional(x[0] < 20, 10.0/9.8, parameters["flooddrake"]["eps1"]))
+g.sub(0).interpolate(conditional(x[0] < 20, 10.0/9.8, 0.0))
 
 # setup bed
 bed = Function(V)
 
-# setup actual depth
-w = g.assign(g - bed)
+# setup state
+state = State(V, g, bed)
 
 # setup source (is only a depth function)
 source = Function(v_h)
 
 # timestep
-solution = Timestepper(V, bed, source, 0.25)
+solution = Timestepper(V, state.bed, source, 0.25)
 
-solution.stepper(0, 10, w, 0.5)
+solution.stepper(0, 10, state.w, 0.5)
