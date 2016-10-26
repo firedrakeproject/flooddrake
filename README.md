@@ -9,5 +9,11 @@ To install, type the following commands into the terminal:
 1. `git clone https://github.com/firedrakeproject/flooddrake`
 2. `pip install -e ./flooddrake`
 
+## Generating the documentation
+To generate the documentation, `flooddrake_doc.pdf`, type the following commands into the terminal inside the `flooddrake` repository:
+
+1. `cd ./docs`
+2. `make docs`
+
 ## Contact
 For any enquiries, please contact: a.gregory14@imperial.ac.uk
