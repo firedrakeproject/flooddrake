@@ -8,7 +8,7 @@ from flooddrake import *
 import numpy as np
 
 
-n = 75
+n = 30
 mesh = SquareMesh(n, n, 50)
 
 
@@ -53,7 +53,10 @@ bed.sub(0).interpolate(H + ((e * abs(x[0] - 25)) / cos(theta)) +
 state = State(V, g, bed)
 
 # setup source (is only a depth function)
-source = Function(v_h).assign(rainfall_distribution())
+x_shift = np.random.uniform(0, 50, 1)[0]
+y_shift = np.random.uniform(0, 50, 1)[0]
+x = SpatialCoordinate(mesh)
+source = Function(v_h).interpolate(0.0025 * (exp(-pow(x[0] - x_shift, 2) / 500 - pow(x[1] - y_shift, 2) / 500)))
 
 # timestep
 solution = Timestepper(V, state.bed, source, 2.0)
