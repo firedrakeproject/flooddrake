@@ -60,18 +60,44 @@ class Timestepper(object):
             if isinstance(self.boundary_conditions, list) is False:
                 raise TypeError('boundary conditions need to be given as an list of conditions')
             markers = np.copy(self.mesh.topology.exterior_facets.unique_markers)
+            # make a direction list for each element in markers
+            if self.mesh.geometric_dimension() == 2:
+                directions = []
+                for m in markers:
+                    directions.append(['x', 'y'])
             for bc in self.boundary_conditions:
-                # check marker is within list of markers
+                # check marker is within list of markers (and if all directions are set)
                 if bc.marker not in markers:
                     raise ValueError('marker ' +
                                      str(bc.marker) +
                                      ' supplied to BoundaryConditions is ' +
                                      'not valid for mesh')
-                markers = np.delete(markers, np.where(markers == bc.marker)[0])
+                if self.mesh.geometric_dimension() == 1:
+                    markers = np.delete(markers, np.where(markers == bc.marker)[0])
+                if self.mesh.geometric_dimension() == 2:
+                    if bc.direction is 'both':
+                        directions.pop(np.where(markers == bc.marker)[0])
+                        markers = np.delete(markers, np.where(markers == bc.marker)[0])
+                    else:
+                        if bc.direction is 'x':
+                            directions[np.where(markers == bc.marker)[0]].remove('x')
+                        if bc.direction is 'y':
+                            directions[np.where(markers == bc.marker)[0]].remove('y')
+                        if len(directions[np.where(markers == bc.marker)[0]]) == 0:
+                            directions.pop(np.where(markers == bc.marker)[0])
+                            markers = np.delete(markers, np.where(markers == bc.marker)[0])
+            # default markers / directions of markers that are still in list
             for i in markers:
                 if type(i) in marker_int_types:
-                    i = int(i)  # convert to np.int
-                self.boundary_conditions.append(BoundaryConditions(i))
+                    ii = int(i)  # convert to np.int
+                if self.mesh.geometric_dimension() == 1:
+                    self.boundary_conditions.append(BoundaryConditions(ii))
+                if self.mesh.geometric_dimension() == 2:
+                    if len(directions[np.where(markers == i)[0]]) == 2:
+                        self.boundary_conditions.append(BoundaryConditions(ii))
+                    if len(directions[np.where(markers == i)[0]]) == 1:
+                        # now only do x or y direction default marker
+                        self.boundary_conditions.append(BoundaryConditions(ii, direction=directions[np.where(markers == i)[0]][0]))
 
         # now get all markers
         self.mesh_markers = self.mesh.topology.exterior_facets.unique_markers
@@ -203,13 +229,22 @@ class Timestepper(object):
         # Define Boundary Fluxes - one for each boundary marker
         self.BoundaryFlux = []
         markers = np.copy(self.mesh_markers)
+        self.__BCS = []
         for i in range(len(self.mesh_markers)):
-            # put the state depths into the boundary values - remove if want to specify h
-            if self.boundary_conditions[i].option == 'inflow':
-                self.boundary_conditions[i].value.sub(0).assign(self.h)
-            self.BoundaryFlux.append(Boundary_Flux(self.V, self.w, self.boundary_conditions[i].option, self.boundary_conditions[i].value))
-            # check all markers are covered
-            markers = np.delete(markers, np.where(markers == self.boundary_conditions[i].marker)[0])
+            self.__BCS.append([])
+        # iterate over all bcs and put them into one array for each marker
+        for i in range(len(self.boundary_conditions)):
+            self.__BCS[np.where(self.boundary_conditions[i].marker == markers)[0]].append(self.boundary_conditions[i])
+        # compute the boundary flux for each marker
+        for i in range(len(self.mesh_markers)):
+            self.BoundaryFlux.append(Boundary_Flux(self.V, self.w, self.__BCS[i]))
+            if self.mesh.geometric_dimension() == 2:
+                if len(self.__BCS[i]) == 2 or self.__BCS[i][0].direction == 'both':
+                    # check all markers are covered
+                    markers = np.delete(markers, np.where(markers == self.__BCS[i][0].marker)[0])
+            if self.mesh.geometric_dimension() == 1:
+                markers = np.delete(markers, np.where(markers == self.__BCS[i][0].marker)[0])
+        # check all boundaries have a flux
         assert len(markers) == 0
 
         # Define source term - these get overidden every step
@@ -230,9 +265,9 @@ class Timestepper(object):
                                  (dot(self.v('-'), self.delta_minus) +
                                   dot(self.v('+'), self.delta_plus)) * dS))
             # add in boundary fluxes
-            for i in range(len(self.boundary_conditions)):
+            for i in range(len(self.mesh_markers)):
                 self.a += (self.Dt * (dot(self.v, self.BoundaryFlux[i]) *
-                                      ds(self.boundary_conditions[i].marker)))
+                                      ds(self.__BCS[i][0].marker)))
 
         if self.mesh.geometric_dimension() == 1:
             self.L = - dot(self.v, self.W) * dx
@@ -244,9 +279,9 @@ class Timestepper(object):
                                  (dot(self.v('-'), self.delta_minus) +
                                   dot(self.v('+'), self.delta_plus)) * dS))
             # add in boundary fluxes
-            for i in range(len(self.boundary_conditions)):
+            for i in range(len(self.mesh_markers)):
                 self.a += (self.Dt * (dot(self.v, self.BoundaryFlux[i]) *
-                                      ds(self.boundary_conditions[i].marker)))
+                                      ds(self.__BCS[i][0].marker)))
 
         self.w_ = Function(self.V)
 

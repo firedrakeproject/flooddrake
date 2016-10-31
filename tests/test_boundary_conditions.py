@@ -105,6 +105,90 @@ def test_default_boundaries_2d():
             assert solution.boundary_conditions[i].value is None
 
 
+def test_default_boundaries_2d_directions():
+
+    n = 10
+    mesh = UnitSquareMesh(n, n)
+
+    # mixed function space
+    v_h = FunctionSpace(mesh, "DG", 1)
+    v_mu = FunctionSpace(mesh, "DG", 1)
+    v_mv = FunctionSpace(mesh, "DG", 1)
+    V = v_h * v_mu * v_mv
+
+    # setup bed
+    bed = Function(V)
+
+    # source term
+    source = Function(v_h)
+
+    # boundary - only give one boundary
+    boundary_w = Function(V)
+    marker = 2
+    boundary_conditions = [BoundaryConditions(marker, option='inflow', value=boundary_w,
+                                              direction='x'),
+                           BoundaryConditions(marker, option='inflow', value=boundary_w,
+                                              direction='y')]
+
+    # timestep
+    solution = Timestepper(V, bed, source, 0.025, boundary_conditions=boundary_conditions)
+
+    # check bcs
+    dirs = ['x', 'y']
+    for i in range(len(solution.boundary_conditions)):
+        print i
+        print solution.boundary_conditions[i].marker
+        if solution.boundary_conditions[i].marker == marker:
+            print solution.boundary_conditions[i].direction
+            assert solution.boundary_conditions[i].option == 'inflow'
+            assert solution.boundary_conditions[i].direction in dirs
+        else:
+            assert solution.boundary_conditions[i].option == 'solid wall'
+            assert solution.boundary_conditions[i].value is None
+            assert solution.boundary_conditions[i].direction is 'both'
+
+
+def test_default_boundaries_2d_boundary_directions_default():
+
+    n = 10
+    mesh = UnitSquareMesh(n, n)
+
+    # mixed function space
+    v_h = FunctionSpace(mesh, "DG", 1)
+    v_mu = FunctionSpace(mesh, "DG", 1)
+    v_mv = FunctionSpace(mesh, "DG", 1)
+    V = v_h * v_mu * v_mv
+
+    # setup bed
+    bed = Function(V)
+
+    # source term
+    source = Function(v_h)
+
+    # boundary - only give one boundary
+    boundary_w = Function(V)
+    marker = 2
+    boundary_conditions = [BoundaryConditions(marker, option='inflow', value=boundary_w,
+                                              direction='x')]
+
+    # timestep
+    solution = Timestepper(V, bed, source, 0.025, boundary_conditions=boundary_conditions)
+
+    # check bcs
+    dirs = ['x', 'y']
+    for i in range(len(solution.boundary_conditions)):
+        if solution.boundary_conditions[i].marker == marker:
+            if solution.boundary_conditions[i].direction == 'x':
+                assert solution.boundary_conditions[i].option == 'inflow'
+            if solution.boundary_conditions[i].direction == 'y':
+                assert solution.boundary_conditions[i].option == 'solid wall'
+            assert solution.boundary_conditions[i].direction in dirs
+        else:
+            assert solution.boundary_conditions[i].option == 'solid wall'
+            assert solution.boundary_conditions[i].value is None
+            assert solution.boundary_conditions[i].direction is 'both'
+
+
 if __name__ == "__main__":
     import os
     import pytest

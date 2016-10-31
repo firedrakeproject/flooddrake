@@ -4,6 +4,7 @@ from __future__ import absolute_import
 from ufl import And
 
 from firedrake import *
+from flooddrake.boundary_conditions import *
 
 
 def Interior_Flux(N, V, wr, wl):
@@ -144,7 +145,7 @@ def Interior_Flux(N, V, wr, wl):
         return Flux
 
 
-def Boundary_Flux(V, w, option='solid wall', value=None):
+def Boundary_Flux(V, w, bc):
     """ Calculates the boundary flux between the state vector and a solid reflective wall (zero velocity, same depth (-> to improve in the future add other boundary conditions options)
 
             :param w: State vector function
@@ -153,11 +154,8 @@ def Boundary_Flux(V, w, option='solid wall', value=None):
             :param N: Normal
             :type N: :class:`FacetNormal'
 
-            :param option: boundary condition option
-            :type option: str
-
-            :param value: state vector at boundary
-            :type value: :class:`Function`
+            :param bc: :class:`BoundaryConditions` object or list of them
+            :type bc: :class:`BoundaryConditions`
 
 
     """
@@ -170,30 +168,40 @@ def Boundary_Flux(V, w, option='solid wall', value=None):
 
     N = FacetNormal(V.mesh())
 
-    if option == 'inflow':  # outflow and solid wall take non prescribed values
-        if isinstance(value, Function) is False:
-            raise ValueError('value at boundary is not state vector Function for inflow bcs')
+    # check that BC's are in proper format
+    if isinstance(bc, list) is True:
+        for b in bc:
+            assert isinstance(b, BoundaryConditions) is True
+    else:
+        bc = [bc]
+        for b in bc:
+            assert isinstance(b, BoundaryConditions) is True
 
-        if len(value.split()) - 1 != d:
-            raise ValueError('dimension of w_at_boundary needs to equal dimension of state')
+    for b in bc:
+        if b.option == 'inflow':  # outflow and solid wall take non prescribed values
+            if isinstance(b.value, Function) is False:
+                raise ValueError('value at boundary is not state vector Function for inflow bcs')
+
+            if len(b.value.split()) - 1 != d:
+                raise ValueError('dimension of w_at_boundary needs to equal dimension of state')
 
     if d == 1:
 
         h, mu = split(w)
 
-        if option == 'solid wall':
+        if bc[0].option == 'solid wall':
             mur = mu
             mul = Constant(0)  # reflecitve in wall
             hr = h
             hl = h
 
-        if option == 'inflow':
+        if bc[0].option == 'inflow':
             mur = mu
-            mul = value.sub(1)
+            mul = bc[0].value.sub(1)
             hr = h
-            hl = value.sub(0)
+            hl = bc[0].value.sub(0)
 
-        if option == 'outflow':
+        if bc[0].option == 'outflow':
             mur = mu
             mul = mu
             hr = h
@@ -236,35 +244,86 @@ def Boundary_Flux(V, w, option='solid wall', value=None):
 
         h, mu, mv = split(w)
 
-        if option == 'solid wall':
-            mul = Constant(0)  # reflecitve in wall
-            mur = mu
+        # iterate through bc's
+        for b in bc:
 
-            mvr = mv
-            mvl = Constant(0)
+            if b.direction is 'both':
 
-            hr = h
-            hl = h
+                if b.option == 'solid wall':
+                    mul = Constant(0)  # reflecitve in wall
+                    mur = mu
 
-        if option == 'inflow':
-            mul = value.sub(1)
-            mur = mu
+                    mvr = mv
+                    mvl = Constant(0)
 
-            mvr = mv
-            mvl = value.sub(2)
+                    hr = h
+                    hl = h
 
-            hr = h
-            hl = value.sub(0)
+                if b.option == 'inflow':
+                    mul = b.value.sub(1)
+                    mur = mu
 
-        if option == 'outflow':
-            mul = mu
-            mur = mu
+                    mvr = mv
+                    mvl = b.value.sub(2)
 
-            mvr = mv
-            mvl = mv
+                    hr = h
+                    hl = h
 
-            hr = h
-            hl = h
+                if b.option == 'outflow':
+                    mul = mu
+                    mur = mu
+
+                    mvr = mv
+                    mvl = mv
+
+                    hr = h
+                    hl = h
+
+            if b.direction is 'x':
+
+                if b.option == 'solid wall':
+                    mul = Constant(0)  # reflective in wall
+                    mur = mu
+
+                    hr = h
+                    hl = h
+
+                if b.option == 'inflow':
+                    mul = b.value.sub(1)
+                    mur = mu
+
+                    hr = h
+                    hl = h
+
+                if b.option == 'outflow':
+                    mul = mu
+                    mur = mu
+
+                    hr = h
+                    hl = h
+
+            if b.direction is 'y':
+
+                if b.option == 'solid wall':
+                    mvl = Constant(0)  # reflective in wall
+                    mvr = mv
+
+                    hr = h
+                    hl = h
+
+                if b.option == 'inflow':
+                    mvl = b.value.sub(2)
+                    mvr = mv
+
+                    hr = h
+                    hl = h
+
+                if b.option == 'outflow':
+                    mvl = mv
+                    mvr = mv
+
+                    hr = h
+                    hl = h
 
         # Do HLLC flux
         ul = conditional(hl <= 0, zero(as_vector((mul / hl, mvl / hl)).ufl_shape),
