@@ -199,7 +199,7 @@ def Boundary_Flux(V, w, bc):
             mur = mu
             mul = bc[0].value.sub(1)
             hr = h
-            hl = bc[0].value.sub(0)
+            hl = h
 
         if bc[0].option == 'outflow':
             mur = mu
