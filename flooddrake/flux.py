@@ -245,6 +245,7 @@ def Boundary_Flux(V, w, bc):
         h, mu, mv = split(w)
 
         # iterate through bc's
+        Directions = ['x', 'y']
         for b in bc:
 
             if b.direction is 'both':
@@ -279,6 +280,9 @@ def Boundary_Flux(V, w, bc):
                     hr = h
                     hl = h
 
+                Directions.remove('x')
+                Directions.remove('y')
+
             if b.direction is 'x':
 
                 if b.option == 'solid wall':
@@ -302,6 +306,8 @@ def Boundary_Flux(V, w, bc):
                     hr = h
                     hl = h
 
+                Directions.remove('x')
+
             if b.direction is 'y':
 
                 if b.option == 'solid wall':
@@ -324,6 +330,11 @@ def Boundary_Flux(V, w, bc):
 
                     hr = h
                     hl = h
+
+                Directions.remove('y')
+
+        # check all directions of momentum are defined
+        assert len(Directions) == 0
 
         # Do HLLC flux
         ul = conditional(hl <= 0, zero(as_vector((mul / hl, mvl / hl)).ufl_shape),
