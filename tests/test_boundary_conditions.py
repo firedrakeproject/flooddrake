@@ -136,10 +136,7 @@ def test_default_boundaries_2d_directions():
     # check bcs
     dirs = ['x', 'y']
     for i in range(len(solution.boundary_conditions)):
-        print i
-        print solution.boundary_conditions[i].marker
         if solution.boundary_conditions[i].marker == marker:
-            print solution.boundary_conditions[i].direction
             assert solution.boundary_conditions[i].option == 'inflow'
             assert solution.boundary_conditions[i].direction in dirs
         else:
