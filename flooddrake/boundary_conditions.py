@@ -7,6 +7,9 @@ from __future__ import absolute_import
 # boundary condition options
 options = ['solid wall', 'inflow', 'outflow']
 
+# horizontal directions
+directions = ['both', 'x', 'y']
+
 
 class BoundaryConditions(object):
 
@@ -31,11 +34,12 @@ class BoundaryConditions(object):
 
     """
 
-    def __init__(self, marker, option='solid wall', value=None):
+    def __init__(self, marker, option='solid wall', value=None, direction='both'):
 
         self.option = option
         self.value = value
         self.marker = marker
+        self.direction = direction
 
         if self.option not in options:
             raise ValueError('bc option must be either solid wall, inflow or outflow')
@@ -44,8 +48,12 @@ class BoundaryConditions(object):
         if self.option == 'outflow' or self.option == 'solid wall':
             self.value = None
 
-        if self.option == 'river':
+        if self.option == 'inflow':
             if self.value is None:
-                raise ValueError('river bc option needs w specified at boundary')
+                raise ValueError('inflow bc option needs w specified at boundary')
+
+        # check that one of directions is given
+        if self.direction not in directions:
+            raise ValueError('horizontal direction of condition must either be both, x or y')
 
         super(BoundaryConditions, self).__init__()
