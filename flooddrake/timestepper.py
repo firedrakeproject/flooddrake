@@ -8,6 +8,8 @@ from flooddrake.min_dx import MinDx
 from flooddrake.adaptive_timestepping import AdaptiveTimestepping
 from flooddrake.boundary_conditions import BoundaryConditions
 
+from pyop2.profiling import timed_stage
+
 from firedrake import *
 from firedrake.logging import warning, RED
 
@@ -310,8 +312,9 @@ class Timestepper(object):
 
         self.w = w
 
-        # setup the solver
-        self.__solver_setup()
+        # setup the solver - this is a timed stage for profiling reasons!
+        with timed_stage("Setup of forms and solver"):
+            self.__solver_setup()
 
         # used as the original state vector in each RK3 step
         self.w_old = Function(self.V).assign(self.w)
@@ -344,8 +347,9 @@ class Timestepper(object):
         while self.t < t_end:
 
             # find new timestep
-            self.dt = self.AT.FindTimestep(self.w)
-            self.Dt.assign(self.dt)
+            with timed_stage("Finding adaptive time-step"):
+                self.dt = self.AT.FindTimestep(self.w)
+                self.Dt.assign(self.dt)
 
             # check that prescribed timestep doesn't fall below minimum timestep
             if self.dt < self.MinTimestep:
@@ -368,47 +372,55 @@ class Timestepper(object):
                 self.dt = t_end - self.t
                 self.Dt.assign(self.dt)
 
-            self.solver.solve()
+            with timed_stage("Runge-Kutta time-stepping scheme"):
+                self.solver.solve()
 
-            self.w.assign(self.w_)
+                self.w.assign(self.w_)
 
-            # slope limiter
-            self.__update_slope_limiter()
-            # slope modification
-            self.__update_slope_modification()
+                # slope limiter
+                with timed_stage("Slope limiting"):
+                    self.__update_slope_limiter()
+                # slope modification
+                with timed_stage("Slope modification"):
+                    self.__update_slope_modification()
 
-            self.solver.solve()
+                self.solver.solve()
 
-            self.w.assign((3.0 / 4.0) * self.w_old + (1.0 / 4.0) * self.w_)
+                self.w.assign((3.0 / 4.0) * self.w_old + (1.0 / 4.0) * self.w_)
 
-            # slope limiter
-            self.__update_slope_limiter()
-            # slope modification
-            self.__update_slope_modification()
+                # slope limiter
+                with timed_stage("Slope limiting"):
+                    self.__update_slope_limiter()
+                # slope modification
+                with timed_stage("Slope modification"):
+                    self.__update_slope_modification()
 
-            self.solver.solve()
+                self.solver.solve()
 
-            self.w.assign((1.0 / 3.0) * self.w_old + (2.0 / 3.0) * self.w_)
+                self.w.assign((1.0 / 3.0) * self.w_old + (2.0 / 3.0) * self.w_)
 
-            # slope limiter
-            self.__update_slope_limiter()
-            # slope modification
-            self.__update_slope_modification()
+                # slope limiter
+                with timed_stage("Slope limiting"):
+                    self.__update_slope_limiter()
+                # slope modification
+                with timed_stage("Slope modification"):
+                    self.__update_slope_modification()
 
-            self.w_old.assign(self.w)
+                self.w_old.assign(self.w)
 
-            # timstep complete - dump realisation if needed
-            self.t += self.dt
+                # timstep complete - dump realisation if needed
+                self.t += self.dt
 
-            if self.t == self.c * t_visualization:
-                self.Project.project()
-                hout_file.write(hout)
-                bout_file.write(bout)
+            with timed_stage("Visualization"):
+                if self.t == self.c * t_visualization:
+                    self.Project.project()
+                    hout_file.write(hout)
+                    bout_file.write(bout)
 
-                self.c += 1
+                    self.c += 1
 
-                self.dt = self.initial_dt
-                self.Dt.assign(self.dt)
+                    self.dt = self.initial_dt
+                    self.Dt.assign(self.dt)
 
         # return timestep
         self.dt = self.initial_dt
