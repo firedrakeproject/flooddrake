@@ -47,6 +47,45 @@ def test_slope_modification():
     assert np.max(np.abs(W.dat.data[2] + 0.2)) < 1e-10
 
 
+def test_slope_modification_p0():
+
+    n = 15
+    mesh = PeriodicUnitSquareMesh(n, n)
+
+    # mixed functionspace
+    v_h = FunctionSpace(mesh, "DG", 0)
+    v_mu = FunctionSpace(mesh, "DG", 0)
+    v_mv = FunctionSpace(mesh, "DG", 0)
+    V = v_h * v_mu * v_mv
+
+    # setup initial condition -> here all -1's -> these should change to zeros
+    w = Function(V)
+    w.sub(0).assign(-1)
+    w.sub(1).assign(-1)
+    w.sub(2).assign(-1)
+
+    SM = SlopeModification(V)
+
+    # slope modification
+    W = SM.Modification(w)
+    assert np.max(np.abs(W.dat.data[0])) < 1e-5
+    assert np.max(np.abs(W.dat.data[1])) < 1e-5
+    assert np.max(np.abs(W.dat.data[2])) < 1e-5
+
+    # now setup a different initial condition -> here everything should stay
+    # same within numerical error
+    w = Function(V)
+    w.sub(0).assign(1)
+    w.sub(1).assign(-0.2)
+    w.sub(2).assign(-0.2)
+
+    # slope modification
+    W = SM.Modification(w)
+    assert np.max(np.abs(W.dat.data[0] - 1)) < 1e-5
+    assert np.max(np.abs(W.dat.data[1] + 0.2)) < 1e-5
+    assert np.max(np.abs(W.dat.data[2] + 0.2)) < 1e-5
+
+
 def test_slope_modification_mean_preserving():
 
     n = 15
