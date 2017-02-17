@@ -22,6 +22,7 @@ os:
 env:
   global:
     - CC=mpicc
+    - PETSC_CONFIGURE_OPTIONS=--download-cmake
 
 before_install:
   - pip install -U pip
