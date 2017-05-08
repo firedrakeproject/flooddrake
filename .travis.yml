@@ -30,7 +30,7 @@ before_install:
 
 install:
   - curl -O https://raw.githubusercontent.com/firedrakeproject/firedrake/master/scripts/firedrake-install
-  - python ./firedrake-install --disable-ssh --minimal-petsc
+  - python ./firedrake-install --disable-ssh --minimal-petsc --no-package-manager
   - . ./firedrake/bin/activate
   - python setup.py install
 
