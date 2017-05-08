@@ -82,10 +82,10 @@ class Timestepper(object):
                         markers = np.delete(markers, np.where(markers == bc.marker)[0])
                     else:
                         if bc.direction is 'x':
-                            directions[np.where(markers == bc.marker)[0]].remove('x')
+                            directions[np.where(markers == bc.marker)[0][0]].remove('x')
                         if bc.direction is 'y':
-                            directions[np.where(markers == bc.marker)[0]].remove('y')
-                        if len(directions[np.where(markers == bc.marker)[0]]) == 0:
+                            directions[np.where(markers == bc.marker)[0][0]].remove('y')
+                        if len(directions[np.where(markers == bc.marker)[0][0]]) == 0:
                             directions.pop(np.where(markers == bc.marker)[0])
                             markers = np.delete(markers, np.where(markers == bc.marker)[0])
             # default markers / directions of markers that are still in list
@@ -95,11 +95,11 @@ class Timestepper(object):
                 if self.mesh.geometric_dimension() == 1:
                     self.boundary_conditions.append(BoundaryConditions(ii))
                 if self.mesh.geometric_dimension() == 2:
-                    if len(directions[np.where(markers == i)[0]]) == 2:
+                    if len(directions[np.where(markers == i)[0][0]]) == 2:
                         self.boundary_conditions.append(BoundaryConditions(ii))
-                    if len(directions[np.where(markers == i)[0]]) == 1:
+                    if len(directions[np.where(markers == i)[0][0]]) == 1:
                         # now only do x or y direction default marker
-                        self.boundary_conditions.append(BoundaryConditions(ii, direction=directions[np.where(markers == i)[0]][0]))
+                        self.boundary_conditions.append(BoundaryConditions(ii, direction=directions[np.where(markers == i)[0][0]][0]))
 
         # now get all markers
         self.mesh_markers = self.mesh.topology.exterior_facets.unique_markers
@@ -236,7 +236,7 @@ class Timestepper(object):
             self.__BCS.append([])
         # iterate over all bcs and put them into one array for each marker
         for i in range(len(self.boundary_conditions)):
-            self.__BCS[np.where(self.boundary_conditions[i].marker == markers)[0]].append(self.boundary_conditions[i])
+            self.__BCS[np.where(self.boundary_conditions[i].marker == markers)[0][0]].append(self.boundary_conditions[i])
         # compute the boundary flux for each marker
         for i in range(len(self.mesh_markers)):
             self.BoundaryFlux.append(Boundary_Flux(self.V, self.w, self.__BCS[i]))
