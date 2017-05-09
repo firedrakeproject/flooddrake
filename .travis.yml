@@ -35,7 +35,7 @@ install:
   - curl -O https://raw.githubusercontent.com/firedrakeproject/firedrake/master/scripts/firedrake-install
   - python ./firedrake-install --disable-ssh --minimal-petsc --no-package-manager
   - . ./firedrake/bin/activate
-  - python setup.py install
+  - pip install -e .
 
 script:
   - make lint
