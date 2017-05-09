@@ -31,12 +31,11 @@ env:
 before_install:
   - pip install -U pip
   - pip install -U virtualenv
-  - pip install pep8-naming
   - pip install flake8
 
 install:
   - curl -O https://raw.githubusercontent.com/firedrakeproject/firedrake/master/scripts/firedrake-install
-  - python ./firedrake-install --disable-ssh --minimal-petsc
+  - python ./firedrake-install --disable-ssh --minimal-petsc --no-package-manager
   - . ./firedrake/bin/activate
   - pip install -e .
 
