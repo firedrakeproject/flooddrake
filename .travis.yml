@@ -11,11 +11,13 @@ addons:
         - git
         - mercurial
         - python-pip
+        - python-scipy
         - libopenmpi-dev
         - openmpi-bin
         - libblas-dev
         - liblapack-dev
         - gfortran
+        - libspatialindex-dev
 os:
   - linux
 
@@ -29,11 +31,12 @@ env:
 before_install:
   - pip install -U pip
   - pip install -U virtualenv
+  - pip install pep8-naming
   - pip install flake8
 
 install:
   - curl -O https://raw.githubusercontent.com/firedrakeproject/firedrake/master/scripts/firedrake-install
-  - python ./firedrake-install --disable-ssh --minimal-petsc --no-package-manager
+  - python ./firedrake-install --disable-ssh --minimal-petsc
   - . ./firedrake/bin/activate
   - pip install -e .
 
