@@ -15,7 +15,7 @@ v_mu = FunctionSpace(mesh, "DG", 1)
 V = v_h * v_mu
 
 # parameters
-parameters["flooddrake"].update({"eps1": 1e-9})
+parameters["flooddrake"].update({"eps1": 1e-4})
 
 # setup free surface depth
 g = Function(V)
