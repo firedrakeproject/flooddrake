@@ -31,7 +31,10 @@ class SlopeLimiter(object):
             raise ValueError('Two function spaces from momementum and depth dont match')
 
         # define the vertex based limiter objects
-        self.SL = VertexBasedLimiter(self.v)
+        if self.V.ufl_element().degree() != 1:
+            self.SL = None
+        else:
+            self.SL = VertexBasedLimiter(self.v)
 
         super(SlopeLimiter, self).__init__()
 
@@ -41,6 +44,10 @@ class SlopeLimiter(object):
             :param w: state vector
 
         """
+
+        # check if not p1
+        if self.SL is None:
+            return w
 
         # Carry out limiting on the free surface depth
         h = w.sub(0)

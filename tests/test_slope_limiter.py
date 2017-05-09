@@ -41,6 +41,39 @@ def test_slope_limiter():
     assert np.max(np.abs(W.dat.data[0] - w.dat.data[0])) < 1e-10
 
 
+def test_slope_limiter_p0():
+
+    n = 15
+    mesh = PeriodicUnitSquareMesh(n, n)
+
+    # mixed function space
+    v_h = FunctionSpace(mesh, "DG", 0)
+    v_mu = FunctionSpace(mesh, "DG", 0)
+    v_mv = FunctionSpace(mesh, "DG", 0)
+    V = v_h * v_mu * v_mv
+
+    # setup initial condition
+    w = Function(V)
+    w.sub(0).assign(1)
+    w.sub(1).assign(1)
+    w.sub(2).assign(1)
+
+    x = SpatialCoordinate(V.mesh())
+    b = Function(V)
+    b.sub(0).interpolate(2 * x[0])
+
+    w.assign(w - b)
+
+    b_, b1, b2 = split(b)
+
+    # slope limiting
+    SL = SlopeLimiter(b_, V)
+    W = SL.Limiter(w)
+
+    # check that it's invariant as all cell averages are same.
+    assert np.max(np.abs(W.dat.data[0] - w.dat.data[0])) < 1e-10
+
+
 def test_slope_limiter_mean_preserving():
 
     n = 15
