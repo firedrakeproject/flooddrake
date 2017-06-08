@@ -6,7 +6,7 @@ from firedrake import *
 from flooddrake import *
 
 # Meshsize
-n = 20
+n = 30
 mesh = UnitIntervalMesh(n)
 
 # mixed function space
@@ -15,7 +15,7 @@ v_mu = FunctionSpace(mesh, "DG", 1)
 V = v_h * v_mu
 
 # parameters
-parameters["flooddrake"].update({"eps1": 1e-4})
+parameters["flooddrake"].update({"eps1": 1e-3})
 
 # setup free surface depth
 g = Function(V)
@@ -35,6 +35,6 @@ state = State(V, g, bed)
 source = Function(v_h).assign(0.001)
 
 # timestep
-solution = Timestepper(V, state.bed, source, 0.25)
+solution = Timestepper(V, state.bed, source, 0.5)
 
-solution.stepper(0, 50, state.w, 0.25)
+solution.stepper(0, 50, state.w, 0.5)
