@@ -5,7 +5,6 @@ from __future__ import division
 
 from firedrake import *
 from flooddrake import *
-from matplotlib import pyplot as plot
 
 
 # Meshsize
