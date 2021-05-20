@@ -1,4 +1,7 @@
+**This project is now archived. If you are looking for a shallow water written using Firedrake, we encourage you to look at [Thetis](https://thetisproject.org)**.
+
 # flooddrake
+
 Firedrake DG shallow water model with wetting and drying for flood simulation
 
 ## Linux terminal installation
