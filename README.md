@@ -1,4 +1,4 @@
-**This project is now archived. If you are looking for a shallow water written using Firedrake, we encourage you to look at [Thetis](https://thetisproject.org)**.
+**This project is now archived. If you are looking for a shallow water model written using Firedrake, we encourage you to look at [Thetis](https://thetisproject.org)**.
 
 # flooddrake
 
